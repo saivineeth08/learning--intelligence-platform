@@ -49,8 +49,8 @@ function LandingPage() {
           Plan, track, and improve your learning
         </h1>
         <p className="mt-3 max-w-2xl text-slate-600">
-          This is the Foundation milestone. Authentication, goals, tasks, and
-          AI features will be added in later milestones.
+          Create an account to start using the platform. Learning goals, tasks,
+          and study tools will arrive in later milestones.
         </p>
       </div>
       <div className={`rounded-lg border px-4 py-3 ${statusStyles[health.status]}`}>

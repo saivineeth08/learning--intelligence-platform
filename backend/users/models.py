@@ -3,10 +3,7 @@ from django.db import models
 
 
 class User(AbstractUser):
-    """Custom user model required before the first migration.
-
-    Authentication APIs are intentionally deferred to Milestone 2.
-    """
+    """Custom user model based on AbstractUser with unique email."""
 
     email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)

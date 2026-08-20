@@ -2,11 +2,11 @@
 
 Production-oriented full-stack application for planning, tracking, and improving learning.
 
-This repository currently includes **Milestone 1 — Foundation** only.
+This repository currently includes **Milestone 1 — Foundation** and **Milestone 2 — Authentication**.
 
 ## Stack
 
-- Backend: Python, Django, Django REST Framework
+- Backend: Python, Django, Django REST Framework, Simple JWT
 - Frontend: React, Vite, JavaScript, React Router, Axios, Tailwind CSS
 - Database: PostgreSQL
 - Infrastructure: Docker Compose (backend, frontend, PostgreSQL)
@@ -20,8 +20,7 @@ frontend/    React + Vite application
 docker-compose.yml
 ```
 
-The `users` app contains only the custom user model required before the first
-migration. Authentication APIs belong to Milestone 2 and are not implemented yet.
+The `users` app owns the custom user model and authentication APIs.
 
 ## Prerequisites
 
@@ -44,6 +43,12 @@ Required variables:
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 - `DATABASE_URL` (or the individual `POSTGRES_*` values)
 - `VITE_API_URL` (frontend)
+
+Optional JWT overrides:
+
+- `JWT_ACCESS_TOKEN_MINUTES` (default `15`)
+- `JWT_REFRESH_TOKEN_DAYS` (default `7`)
+- `JWT_SIGNING_KEY` (falls back to `SECRET_KEY`)
 
 ## Local setup without Docker
 
@@ -89,8 +94,34 @@ npm install
 npm run dev
 ```
 
-The app runs at `http://localhost:5173` and calls the backend health endpoint
-through the centralized Axios client.
+The app runs at `http://localhost:5173` and uses the centralized Axios client for health checks and authentication.
+
+## Authentication
+
+Base path: `/api/auth/`
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| POST | `/api/auth/register/` | No | Create a user |
+| POST | `/api/auth/login/` | No | Return access and refresh JWTs |
+| POST | `/api/auth/refresh/` | No | Rotate refresh token and return a new access token |
+| POST | `/api/auth/logout/` | Yes | Blacklist the provided refresh token |
+| GET | `/api/auth/profile/` | Yes | Current user's safe profile |
+| PATCH | `/api/auth/profile/` | Yes | Update permitted profile fields |
+| POST | `/api/auth/change-password/` | Yes | Change password and revoke refresh tokens |
+
+Login uses `username` and `password`.
+
+Protected profile fields such as `username`, `password`, `is_staff`, and `is_superuser` cannot be changed through `PATCH /api/auth/profile/`.
+
+### JWT logout behavior
+
+Access tokens are stateless JWTs. Logout blacklists the **refresh** token using Simple JWT's token blacklist app.
+
+- A blacklisted refresh token cannot be used to obtain new access tokens.
+- An existing access token remains valid until it expires (`JWT_ACCESS_TOKEN_MINUTES`).
+- Changing a password blacklists all outstanding refresh tokens for that user.
+- Refresh token rotation is enabled: each refresh returns a new refresh token and blacklists the previous one.
 
 ## Docker Compose
 
@@ -123,4 +154,4 @@ GitHub Actions runs:
 
 ## Next milestone
 
-Milestone 2 — Authentication (registration, login, JWT, profile, password change).
+Milestone 3 — Learning Management (goals, tasks, study sessions).
