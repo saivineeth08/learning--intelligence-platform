@@ -37,6 +37,12 @@ function MainLayout() {
                 <NavLink to="/notes" className={navLinkClass}>
                   Notes
                 </NavLink>
+                <NavLink to="/ai/chat" className={navLinkClass}>
+                  AI Chat
+                </NavLink>
+                <NavLink to="/ai/quizzes" className={navLinkClass}>
+                  Quizzes
+                </NavLink>
                 <NavLink to="/analytics" className={navLinkClass}>
                   Analytics
                 </NavLink>

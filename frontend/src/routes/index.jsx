@@ -9,6 +9,8 @@ import LoginPage from "../pages/LoginPage";
 import NotesPage from "../pages/NotesPage";
 import ProfilePage from "../pages/ProfilePage";
 import RegisterPage from "../pages/RegisterPage";
+import DocumentChatPage from "../pages/DocumentChatPage";
+import QuizGeneratorPage from "../pages/QuizGeneratorPage";
 import ResourcesPage from "../pages/ResourcesPage";
 import StudySessionsPage from "../pages/StudySessionsPage";
 import TasksPage from "../pages/TasksPage";
@@ -65,6 +67,14 @@ export const router = createBrowserRouter([
           {
             path: "notes",
             element: <NotesPage />,
+          },
+          {
+            path: "ai/chat",
+            element: <DocumentChatPage />,
+          },
+          {
+            path: "ai/quizzes",
+            element: <QuizGeneratorPage />,
           },
           {
             path: "profile",

@@ -23,10 +23,7 @@ class MockLLMProvider(BaseLLMProvider):
         self, prompt: str, system_prompt: Optional[str] = None, **kwargs: Any
     ) -> Dict[str, Any]:
         if self.fixed_response is not None:
-            try:
-                return json.loads(self.fixed_response)
-            except json.JSONDecodeError:
-                pass
+            return json.loads(self.fixed_response)
         return {
             "status": "success",
             "mock": True,
