@@ -1,5 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
+import AnalyticsPage from "../pages/AnalyticsPage";
+import DashboardPage from "../pages/DashboardPage";
 import GoalDetailPage from "../pages/GoalDetailPage";
 import GoalsPage from "../pages/GoalsPage";
 import LandingPage from "../pages/LandingPage";
@@ -32,6 +34,14 @@ export const router = createBrowserRouter([
       {
         element: <ProtectedRoute />,
         children: [
+          {
+            path: "dashboard",
+            element: <DashboardPage />,
+          },
+          {
+            path: "analytics",
+            element: <AnalyticsPage />,
+          },
           {
             path: "goals",
             element: <GoalsPage />,

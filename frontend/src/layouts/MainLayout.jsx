@@ -13,12 +13,15 @@ function MainLayout() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link to="/" className="text-lg font-semibold tracking-tight">
+          <Link to={isAuthenticated ? "/dashboard" : "/"} className="text-lg font-semibold tracking-tight">
             Learning Intelligence Platform
           </Link>
           <nav className="flex items-center gap-5 text-sm">
             {isAuthenticated ? (
               <>
+                <NavLink to="/dashboard" className={navLinkClass}>
+                  Dashboard
+                </NavLink>
                 <NavLink to="/goals" className={navLinkClass}>
                   Goals
                 </NavLink>
@@ -33,6 +36,9 @@ function MainLayout() {
                 </NavLink>
                 <NavLink to="/notes" className={navLinkClass}>
                   Notes
+                </NavLink>
+                <NavLink to="/analytics" className={navLinkClass}>
+                  Analytics
                 </NavLink>
                 <NavLink to="/profile" className={navLinkClass}>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800 border border-slate-200">
