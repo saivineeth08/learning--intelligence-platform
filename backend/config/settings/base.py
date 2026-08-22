@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "resources",
     "notes",
     "analytics",
+    "ai",
 ]
 
 MIDDLEWARE = [
