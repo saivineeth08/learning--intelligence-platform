@@ -1,0 +1,1 @@
+"""Studies app module."""
