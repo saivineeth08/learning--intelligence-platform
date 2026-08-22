@@ -83,3 +83,11 @@ export async function getQuiz(quizId) {
   const response = await apiClient.get(`/api/ai/quizzes/${quizId}/`);
   return response.data;
 }
+
+/**
+ * Fetch rule-based learning recommendations for the authenticated user.
+ */
+export async function getRecommendations() {
+  const response = await apiClient.get("/api/ai/recommendations/");
+  return response.data;
+}

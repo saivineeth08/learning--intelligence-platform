@@ -8,6 +8,7 @@ from ai.views import (
     DocumentStatusView,
     QuizDetailView,
     QuizListGenerateView,
+    RecommendationsView,
 )
 
 urlpatterns = [
@@ -24,5 +25,8 @@ urlpatterns = [
     path("quizzes/", QuizListGenerateView.as_view(), name="quiz-list"),
     path("quizzes/generate/", QuizListGenerateView.as_view(), name="quiz-generate"),
     path("quizzes/<int:pk>/", QuizDetailView.as_view(), name="quiz-detail"),
+
+    # Rule-based Recommendations
+    path("recommendations/", RecommendationsView.as_view(), name="recommendations"),
 ]
 

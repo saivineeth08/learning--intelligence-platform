@@ -41,6 +41,10 @@ class Goal(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "status"], name="goal_user_status_idx"),
+            models.Index(fields=["user", "priority"], name="goal_user_priority_idx"),
+        ]
 
     def __str__(self):
         return self.title

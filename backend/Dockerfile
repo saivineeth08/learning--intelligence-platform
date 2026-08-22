@@ -16,4 +16,6 @@ COPY . .
 
 EXPOSE 8000
 
+# Default command: development runserver.
+# Override in docker-compose.prod.yml with gunicorn for production.
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

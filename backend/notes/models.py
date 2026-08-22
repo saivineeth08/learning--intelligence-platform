@@ -38,6 +38,10 @@ class Note(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "created_at"], name="note_user_created_idx"),
+            models.Index(fields=["user", "goal"], name="note_user_goal_idx"),
+        ]
 
     def __str__(self):
         return self.title

@@ -104,3 +104,11 @@ class GenerateQuizSerializer(serializers.Serializer):
 class DocumentIndexRequestSerializer(serializers.Serializer):
     resource_id = serializers.IntegerField(required=True)
 
+
+class RecommendationSerializer(serializers.Serializer):
+    priority = serializers.ChoiceField(choices=["HIGH", "MEDIUM", "LOW"])
+    type = serializers.CharField()
+    title = serializers.CharField()
+    message = serializers.CharField()
+    action_url = serializers.CharField(allow_blank=True, default="")
+

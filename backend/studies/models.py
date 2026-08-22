@@ -30,6 +30,10 @@ class StudySession(models.Model):
 
     class Meta:
         ordering = ["-started_at"]
+        indexes = [
+            models.Index(fields=["user", "started_at"], name="study_user_started_at_idx"),
+            models.Index(fields=["user", "goal"], name="study_user_goal_idx"),
+        ]
 
     def __str__(self):
         return f"StudySession({self.user.username} - {self.goal.title}: {self.duration_seconds}s)"

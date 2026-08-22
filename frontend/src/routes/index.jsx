@@ -8,10 +8,12 @@ import LandingPage from "../pages/LandingPage";
 import LoginPage from "../pages/LoginPage";
 import NotesPage from "../pages/NotesPage";
 import ProfilePage from "../pages/ProfilePage";
+import RecommendationsPage from "../pages/RecommendationsPage";
 import RegisterPage from "../pages/RegisterPage";
 import DocumentChatPage from "../pages/DocumentChatPage";
 import QuizGeneratorPage from "../pages/QuizGeneratorPage";
 import ResourcesPage from "../pages/ResourcesPage";
+import SettingsPage from "../pages/SettingsPage";
 import StudySessionsPage from "../pages/StudySessionsPage";
 import TasksPage from "../pages/TasksPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -77,8 +79,16 @@ export const router = createBrowserRouter([
             element: <QuizGeneratorPage />,
           },
           {
+            path: "ai/recommendations",
+            element: <RecommendationsPage />,
+          },
+          {
             path: "profile",
             element: <ProfilePage />,
+          },
+          {
+            path: "settings",
+            element: <SettingsPage />,
           },
         ],
       },

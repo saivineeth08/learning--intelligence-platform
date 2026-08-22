@@ -57,10 +57,12 @@ INSTALLED_APPS = [
     "notes",
     "analytics",
     "ai",
+    "search",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -141,6 +143,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BACKEND_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = REPO_ROOT / "media"

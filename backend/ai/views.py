@@ -12,6 +12,7 @@ from ai.serializers import (
     DocumentIndexRequestSerializer,
     GenerateQuizSerializer,
     QuizSerializer,
+    RecommendationSerializer,
     SendChatMessageSerializer,
 )
 from ai.services import (
@@ -24,6 +25,7 @@ from ai.services import (
     list_quizzes,
     send_chat_message,
 )
+from ai.recommendations import get_recommendations
 from resources.models import Resource
 
 
@@ -138,3 +140,18 @@ class QuizDetailView(APIView):
         quiz = get_quiz(user=request.user, quiz_id=pk)
         return Response(QuizSerializer(quiz).data, status=status.HTTP_200_OK)
 
+
+class RecommendationsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Return rule-based learning recommendations for the authenticated user."""
+        recommendations = get_recommendations(request.user)
+        serializer = RecommendationSerializer(recommendations, many=True)
+        return Response(
+            {
+                "count": len(recommendations),
+                "recommendations": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )

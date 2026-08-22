@@ -36,9 +36,12 @@ jobs:
           python-version: "3.12"
       - name: Install backend dependencies
         run: pip install -r backend/requirements.txt
-      - name: Django system checks
+      - name: Django system checks (development)
         working-directory: backend
         run: python manage.py check
+      - name: Apply migrations
+        working-directory: backend
+        run: python manage.py migrate --no-input
       - name: Run backend tests
         working-directory: backend
         run: python manage.py test
