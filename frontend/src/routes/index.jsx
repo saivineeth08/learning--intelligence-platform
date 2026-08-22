@@ -4,8 +4,10 @@ import GoalDetailPage from "../pages/GoalDetailPage";
 import GoalsPage from "../pages/GoalsPage";
 import LandingPage from "../pages/LandingPage";
 import LoginPage from "../pages/LoginPage";
+import NotesPage from "../pages/NotesPage";
 import ProfilePage from "../pages/ProfilePage";
 import RegisterPage from "../pages/RegisterPage";
+import ResourcesPage from "../pages/ResourcesPage";
 import StudySessionsPage from "../pages/StudySessionsPage";
 import TasksPage from "../pages/TasksPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -45,6 +47,14 @@ export const router = createBrowserRouter([
           {
             path: "study-sessions",
             element: <StudySessionsPage />,
+          },
+          {
+            path: "resources",
+            element: <ResourcesPage />,
+          },
+          {
+            path: "notes",
+            element: <NotesPage />,
           },
           {
             path: "profile",

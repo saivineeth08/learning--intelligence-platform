@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
@@ -8,5 +10,11 @@ urlpatterns = [
     path("api/goals/", include("goals.urls")),
     path("api/tasks/", include("tasks.urls")),
     path("api/studies/", include("studies.urls")),
+    path("api/resources/", include("resources.urls")),
+    path("api/notes/", include("notes.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
 

@@ -28,6 +28,12 @@ function MainLayout() {
                 <NavLink to="/study-sessions" className={navLinkClass}>
                   Study Sessions
                 </NavLink>
+                <NavLink to="/resources" className={navLinkClass}>
+                  Resources
+                </NavLink>
+                <NavLink to="/notes" className={navLinkClass}>
+                  Notes
+                </NavLink>
                 <NavLink to="/profile" className={navLinkClass}>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800 border border-slate-200">
                     {user?.username}

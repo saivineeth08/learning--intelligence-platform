@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     "goals",
     "tasks",
     "studies",
+    "resources",
+    "notes",
 ]
 
 MIDDLEWARE = [
@@ -137,6 +139,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BACKEND_DIR / "staticfiles"
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = REPO_ROOT / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
