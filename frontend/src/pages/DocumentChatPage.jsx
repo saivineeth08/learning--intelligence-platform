@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   createChatSession,
   getChatSession,
+  indexResource,
   listChatSessions,
   sendChatMessage,
 } from "../services/ai";
 import { getResources } from "../services/resources";
 
 function DocumentChatPage() {
+  const [searchParams] = useSearchParams();
+  const resourceParam = searchParams.get("resource");
+
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [resources, setResources] = useState([]);
@@ -17,6 +22,7 @@ function DocumentChatPage() {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
+  const [indexingDoc, setIndexingDoc] = useState(false);
   const [error, setError] = useState("");
   const [expandedSource, setExpandedSource] = useState(null);
 
@@ -32,6 +38,34 @@ function DocumentChatPage() {
       setSessions(sessionsData);
       setResources(resourcesData);
 
+      // Handle query parameter ?resource=<id>
+      if (resourceParam) {
+        const matchingRes = resourcesData.find((r) => String(r.id) === String(resourceParam));
+        if (matchingRes) {
+          setSelectedResourceId(String(matchingRes.id));
+
+          // Look for an existing session with this resource
+          const existingSession = sessionsData.find(
+            (s) => s.resource && String(s.resource) === String(matchingRes.id)
+          );
+
+          if (existingSession) {
+            const fullSession = await getChatSession(existingSession.id);
+            setActiveSession(fullSession);
+          } else {
+            // Auto-create a focused session for this resource
+            const newSession = await createChatSession({
+              resource_id: matchingRes.id,
+              title: `Chat: ${matchingRes.title}`,
+            });
+            setSessions([newSession, ...sessionsData]);
+            setActiveSession({ ...newSession, messages: [] });
+          }
+          return;
+        }
+      }
+
+      // Default: select first available session if present
       if (sessionsData.length > 0) {
         const fullSession = await getChatSession(sessionsData[0].id);
         setActiveSession(fullSession);
@@ -45,7 +79,7 @@ function DocumentChatPage() {
 
   useEffect(() => {
     loadInitialData();
-  }, []);
+  }, [resourceParam]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -63,7 +97,7 @@ function DocumentChatPage() {
   }
 
   async function handleCreateSession(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setCreatingSession(true);
     setError("");
     try {
@@ -83,9 +117,9 @@ function DocumentChatPage() {
     }
   }
 
-  async function handleSendMessage(e) {
-    e.preventDefault();
-    const cleanMsg = messageInput.trim();
+  async function handleSendMessage(e, overrideText = null) {
+    if (e) e.preventDefault();
+    const cleanMsg = (overrideText || messageInput).trim();
     if (!cleanMsg || !activeSession) return;
 
     // Optimistically add user turn
@@ -102,7 +136,7 @@ function DocumentChatPage() {
       messages: [...(prev.messages || []), optimisticUserMsg],
     }));
 
-    setMessageInput("");
+    if (!overrideText) setMessageInput("");
     setSendingMessage(true);
     setError("");
 
@@ -113,11 +147,37 @@ function DocumentChatPage() {
         messages: [...prev.messages, aiResponse],
       }));
     } catch (err) {
-      setError("Failed to generate AI response. Please try again.");
+      setError(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          "Failed to generate AI response. Please verify the backend connection."
+      );
     } finally {
       setSendingMessage(false);
     }
   }
+
+  async function handleIndexCurrentResource() {
+    if (!activeSession?.resource) return;
+    setIndexingDoc(true);
+    setError("");
+    try {
+      await indexResource(activeSession.resource);
+      // Reload active session
+      const full = await getChatSession(activeSession.id);
+      setActiveSession(full);
+    } catch (err) {
+      setError("Failed to index resource for AI. Verify it contains readable text.");
+    } finally {
+      setIndexingDoc(false);
+    }
+  }
+
+  const quickPrompts = [
+    "Summarize the key concepts in this material.",
+    "What are the most important terms and definitions?",
+    "Explain the main takeaways in simple steps.",
+  ];
 
   return (
     <section className="space-y-6">
@@ -130,13 +190,19 @@ function DocumentChatPage() {
       </div>
 
       {error ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex justify-between items-center">
+          <span>{error}</span>
+          <button
+            onClick={() => setError("")}
+            className="text-xs font-bold text-red-800 hover:underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
       ) : null}
 
       {/* Main Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[600px]">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[620px]">
         {/* Left Column: Sessions List & Creator */}
         <div className="lg:col-span-1 space-y-4">
           {/* Create New Session Box */}
@@ -194,7 +260,7 @@ function DocumentChatPage() {
             ) : sessions.length === 0 ? (
               <p className="text-xs text-slate-500">No chat sessions yet. Create one above!</p>
             ) : (
-              <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
+              <div className="space-y-1.5 max-h-[380px] overflow-y-auto">
                 {sessions.map((s) => (
                   <button
                     key={s.id}
@@ -227,9 +293,19 @@ function DocumentChatPage() {
                 {activeSession ? activeSession.title : "Select or create a chat session"}
               </h2>
               {activeSession?.resource_title ? (
-                <span className="inline-flex items-center gap-1 mt-0.5 rounded bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
-                  Focused Resource: {activeSession.resource_title}
-                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
+                    Focused Document: {activeSession.resource_title}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleIndexCurrentResource}
+                    disabled={indexingDoc}
+                    className="text-[10px] text-blue-600 hover:underline cursor-pointer"
+                  >
+                    {indexingDoc ? "Re-indexing..." : "Re-index Doc"}
+                  </button>
+                </div>
               ) : (
                 <span className="text-xs text-slate-500">Grounded across all user documents</span>
               )}
@@ -248,8 +324,22 @@ function DocumentChatPage() {
                 <p>Select an existing session on the left or create a new one to begin learning.</p>
               </div>
             ) : activeSession.messages?.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400 text-sm">
-                <p>No messages yet. Ask any question about your learning material!</p>
+              <div className="h-full flex flex-col items-center justify-center text-slate-500 text-sm space-y-4">
+                <p className="font-medium text-slate-700">No messages in this session yet.</p>
+                <p className="text-xs text-slate-500 max-w-md text-center">
+                  Try asking a specific question about your study materials, or click one of the quick suggestions below:
+                </p>
+                <div className="flex flex-col gap-2 w-full max-w-md">
+                  {quickPrompts.map((prompt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSendMessage(null, prompt)}
+                      className="text-left rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer shadow-2xs"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               activeSession.messages?.map((msg, idx) => (
@@ -287,9 +377,9 @@ function DocumentChatPage() {
                                   📄 {src.resource_title} (Chunk #{src.chunk_index})
                                 </button>
                                 {isSelected ? (
-                                  <div className="p-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 max-w-sm shadow-xs">
-                                    <p className="font-semibold text-slate-900 mb-0.5">Excerpt:</p>
-                                    <p className="italic">"{src.snippet}..."</p>
+                                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 max-w-sm shadow-xs space-y-1">
+                                    <p className="font-semibold text-slate-900">Excerpt snippet:</p>
+                                    <p className="italic text-slate-600">"{src.snippet}..."</p>
                                   </div>
                                 ) : null}
                               </div>
@@ -309,7 +399,7 @@ function DocumentChatPage() {
 
             {sendingMessage ? (
               <div className="flex items-start">
-                <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-xs px-4 py-3 text-xs text-slate-500 shadow-xs flex items-center gap-2">
+                <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-xs px-4 py-3 text-xs text-slate-600 shadow-xs flex items-center gap-2">
                   <span className="inline-block w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
                   Learning AI is searching resources and grounding answer...
                 </div>

@@ -99,3 +99,8 @@ class GenerateQuizSerializer(serializers.Serializer):
         choices=QuizQuestion.DifficultyChoices.values,
         default=QuizQuestion.DifficultyChoices.MEDIUM,
     )
+
+
+class DocumentIndexRequestSerializer(serializers.Serializer):
+    resource_id = serializers.IntegerField(required=True)
+

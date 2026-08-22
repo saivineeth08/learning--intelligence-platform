@@ -18,6 +18,8 @@ class ResourceSerializer(serializers.ModelSerializer):
     task_title = serializers.CharField(source="task.title", read_only=True)
     file_name = serializers.CharField(read_only=True)
     file_url = serializers.SerializerMethodField()
+    is_indexed = serializers.SerializerMethodField()
+    chunk_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Resource
@@ -35,6 +37,8 @@ class ResourceSerializer(serializers.ModelSerializer):
             "task_title",
             "file_name",
             "file_url",
+            "is_indexed",
+            "chunk_count",
             "created_at",
             "updated_at",
         )
@@ -45,6 +49,8 @@ class ResourceSerializer(serializers.ModelSerializer):
             "task_title",
             "file_name",
             "file_url",
+            "is_indexed",
+            "chunk_count",
             "created_at",
             "updated_at",
         )
@@ -54,6 +60,16 @@ class ResourceSerializer(serializers.ModelSerializer):
             "url": {"required": False, "allow_blank": True},
             "file": {"required": False, "allow_null": True},
         }
+
+    def get_is_indexed(self, obj):
+        if hasattr(obj, "chunks"):
+            return obj.chunks.exists()
+        return False
+
+    def get_chunk_count(self, obj):
+        if hasattr(obj, "chunks"):
+            return obj.chunks.count()
+        return 0
 
     def get_file_url(self, obj):
         if obj.file:

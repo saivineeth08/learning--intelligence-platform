@@ -1,6 +1,26 @@
 import apiClient from "./api";
 
 /**
+ * Trigger backend text extraction, chunking, and vector indexing for a resource.
+ * @param {number} resourceId
+ */
+export async function indexResource(resourceId) {
+  const response = await apiClient.post("/api/ai/documents/index/", {
+    resource_id: resourceId,
+  });
+  return response.data;
+}
+
+/**
+ * Check if a resource has been processed and indexed into DocumentChunks.
+ * @param {number} resourceId
+ */
+export async function getDocumentIndexStatus(resourceId) {
+  const response = await apiClient.get(`/api/ai/documents/${resourceId}/status/`);
+  return response.data;
+}
+
+/**
  * List all chat sessions for the authenticated user.
  */
 export async function listChatSessions() {

@@ -1,12 +1,15 @@
 from rest_framework import status
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ai.models import DocumentChunk
 from ai.serializers import (
     AIChatMessageSerializer,
     AIChatSessionSerializer,
     CreateChatSessionSerializer,
+    DocumentIndexRequestSerializer,
     GenerateQuizSerializer,
     QuizSerializer,
     SendChatMessageSerializer,
@@ -16,10 +19,53 @@ from ai.services import (
     generate_quiz,
     get_chat_session,
     get_quiz,
+    index_resource,
     list_chat_sessions,
     list_quizzes,
     send_chat_message,
 )
+from resources.models import Resource
+
+
+class DocumentIndexView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = DocumentIndexRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        resource_id = serializer.validated_data["resource_id"]
+        try:
+            resource = Resource.objects.get(id=resource_id)
+        except Resource.DoesNotExist:
+            raise NotFound("Resource not found.")
+        if resource.user_id != request.user.id:
+            raise PermissionDenied("You do not have permission to index this resource.")
+
+        result = index_resource(resource, request_user=request.user)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class DocumentStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            resource = Resource.objects.get(id=pk)
+        except Resource.DoesNotExist:
+            raise NotFound("Resource not found.")
+        if resource.user_id != request.user.id:
+            raise PermissionDenied("You do not have permission to view this resource.")
+
+        chunks = DocumentChunk.objects.filter(resource=resource, user=request.user)
+        chunk_count = chunks.count()
+        return Response(
+            {
+                "resource_id": resource.id,
+                "is_indexed": chunk_count > 0,
+                "total_chunks": chunk_count,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class ChatSessionListCreateView(APIView):
@@ -91,3 +137,4 @@ class QuizDetailView(APIView):
     def get(self, request, pk):
         quiz = get_quiz(user=request.user, quiz_id=pk)
         return Response(QuizSerializer(quiz).data, status=status.HTTP_200_OK)
+

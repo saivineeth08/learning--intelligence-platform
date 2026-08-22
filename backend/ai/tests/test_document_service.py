@@ -201,3 +201,34 @@ class DocumentServiceTestCase(TestCase):
         provider = OpenAIProvider(api_key="")
         with self.assertRaises(AIConfigurationError):
             provider.generate_text("Hello")
+
+    def test_document_index_and_status_api_endpoints(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        txt_file = SimpleUploadedFile("api_doc.txt", b"First chapter of study material.", content_type="text/plain")
+        res = Resource.objects.create(user=self.user, title="API Doc", resource_type=ResourceType.FILE, file=txt_file)
+
+        # Status before indexing
+        status_resp = client.get(f"/api/ai/documents/{res.id}/status/")
+        self.assertEqual(status_resp.status_code, 200)
+        self.assertFalse(status_resp.data["is_indexed"])
+        self.assertEqual(status_resp.data["total_chunks"], 0)
+
+        # Trigger indexing via API
+        index_resp = client.post("/api/ai/documents/index/", {"resource_id": res.id}, format="json")
+        self.assertEqual(index_resp.status_code, 200)
+        self.assertEqual(index_resp.data["status"], "indexed")
+
+        # Status after indexing
+        status_resp2 = client.get(f"/api/ai/documents/{res.id}/status/")
+        self.assertEqual(status_resp2.status_code, 200)
+        self.assertTrue(status_resp2.data["is_indexed"])
+        self.assertTrue(status_resp2.data["total_chunks"] >= 1)
+
+        # Cross-user indexing rejection
+        client.force_authenticate(user=self.other_user)
+        rej_resp = client.post("/api/ai/documents/index/", {"resource_id": res.id}, format="json")
+        self.assertEqual(rej_resp.status_code, 403)
+

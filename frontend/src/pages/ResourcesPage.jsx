@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { indexResource } from "../services/ai";
 import { getGoals } from "../services/goals";
 import {
   createResource,
@@ -9,11 +11,13 @@ import {
 import { getTasks } from "../services/tasks";
 
 function ResourcesPage() {
+  const navigate = useNavigate();
   const [resources, setResources] = useState([]);
   const [goals, setGoals] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [indexingState, setIndexingState] = useState({});
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -31,6 +35,19 @@ function ResourcesPage() {
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  async function handleIndexResource(resourceId) {
+    setIndexingState((prev) => ({ ...prev, [resourceId]: true }));
+    setError("");
+    try {
+      await indexResource(resourceId);
+      await loadData();
+    } catch (err) {
+      setError("Failed to index resource for AI. Check that it contains readable text.");
+    } finally {
+      setIndexingState((prev) => ({ ...prev, [resourceId]: false }));
+    }
+  }
 
   async function loadData() {
     setError("");
@@ -251,7 +268,7 @@ function ResourcesPage() {
           {resources.map((resource) => (
             <div
               key={resource.id}
-              className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-5 hover:border-slate-300 shadow-xs"
+              className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-5 hover:border-slate-300 shadow-xs space-y-4"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
@@ -261,15 +278,31 @@ function ResourcesPage() {
                     </span>
                     <h3 className="font-semibold text-slate-900">{resource.title}</h3>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
-                      resource.resource_type === "FILE"
-                        ? "bg-purple-50 text-purple-700 border-purple-200"
-                        : "bg-cyan-50 text-cyan-700 border-cyan-200"
-                    }`}
-                  >
-                    {resource.resource_type}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+                        resource.resource_type === "FILE"
+                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                          : "bg-cyan-50 text-cyan-700 border-cyan-200"
+                      }`}
+                    >
+                      {resource.resource_type}
+                    </span>
+                    {resource.is_indexed ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        ✨ AI Ready ({resource.chunk_count})
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleIndexResource(resource.id)}
+                        disabled={indexingState[resource.id]}
+                        className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 cursor-pointer disabled:opacity-50"
+                      >
+                        {indexingState[resource.id] ? "⚙️ Indexing..." : "⚡ Index"}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {resource.description ? (
@@ -289,7 +322,7 @@ function ResourcesPage() {
                   ) : null}
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100">
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                   {resource.resource_type === "FILE" && resource.file_url ? (
                     <a
                       href={resource.file_url}
@@ -306,7 +339,7 @@ function ResourcesPage() {
                       href={resource.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-700 hover:underline truncate max-w-full"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-700 hover:underline truncate max-w-[200px]"
                     >
                       <span>Open Link ↗</span>
                       <span className="text-slate-400 font-normal truncate">({resource.url})</span>
@@ -315,9 +348,24 @@ function ResourcesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                <span>{new Date(resource.created_at).toLocaleDateString()}</span>
+              {/* AI Actions Row */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
+                  <Link
+                    to={`/ai/chat?resource=${resource.id}`}
+                    className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+                  >
+                    💬 Ask AI
+                  </Link>
+                  <Link
+                    to={`/ai/quizzes?resource=${resource.id}`}
+                    className="inline-flex items-center gap-1 rounded-md bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-800"
+                  >
+                    ✨ Quiz
+                  </Link>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-slate-500">
                   <button
                     onClick={() => openEdit(resource)}
                     className="font-medium text-slate-700 hover:underline"
