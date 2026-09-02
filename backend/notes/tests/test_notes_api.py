@@ -121,8 +121,9 @@ class NoteAPITestCase(TestCase):
         )
         response = self.client.get("/api/notes/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["title"], "User 1 Note")
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["title"], "User 1 Note")
 
     def test_retrieve_and_ownership_isolation(self):
         own_note = Note.objects.create(
@@ -209,28 +210,51 @@ class NoteAPITestCase(TestCase):
 
         # Search by title
         res = self.client.get("/api/notes/?search=Graph")
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["id"], n1.id)
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(res.data["results"][0]["id"], n1.id)
 
         # Search by content
         res = self.client.get("/api/notes/?search=Dijkstra")
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["id"], n1.id)
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(res.data["results"][0]["id"], n1.id)
 
         # Filter by goal
         res = self.client.get(f"/api/notes/?goal={self.goal.id}")
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["id"], n1.id)
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(res.data["results"][0]["id"], n1.id)
 
         # Filter by task
         res = self.client.get(f"/api/notes/?task={self.task.id}")
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["id"], n2.id)
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(res.data["results"][0]["id"], n2.id)
 
         # Filter by resource
         res = self.client.get(f"/api/notes/?resource={self.resource.id}")
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["id"], n2.id)
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(res.data["results"][0]["id"], n2.id)
+
+    def test_notes_pagination(self):
+        # Create 24 more notes
+        more_notes = [
+            Note(
+                user=self.user,
+                title=f"Note #{i}",
+                content=f"Content for note #{i}",
+            )
+            for i in range(24)
+        ]
+        Note.objects.bulk_create(more_notes)
+
+        # Page 1
+        res_p1 = self.client.get("/api/notes/")
+        self.assertEqual(res_p1.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_p1.data["count"], 24)
+        self.assertEqual(len(res_p1.data["results"]), 20)
+
+        # Page 2
+        res_p2 = self.client.get("/api/notes/?page=2")
+        self.assertEqual(res_p2.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res_p2.data["results"]), 4)
 
     def test_cross_user_goal_rejection(self):
         payload = {

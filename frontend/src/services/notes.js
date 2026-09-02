@@ -2,7 +2,7 @@ import apiClient from "./api";
 
 export async function getNotes(params = {}) {
   const response = await apiClient.get("/api/notes/", { params });
-  return response.data;
+  return Array.isArray(response.data) ? response.data : (response.data?.results ?? response.data);
 }
 
 export async function getNote(id) {

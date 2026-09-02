@@ -62,11 +62,15 @@ class ResourceSerializer(serializers.ModelSerializer):
         }
 
     def get_is_indexed(self, obj):
+        if hasattr(obj, "chunks_count"):
+            return obj.chunks_count > 0
         if hasattr(obj, "chunks"):
             return obj.chunks.exists()
         return False
 
     def get_chunk_count(self, obj):
+        if hasattr(obj, "chunks_count"):
+            return obj.chunks_count
         if hasattr(obj, "chunks"):
             return obj.chunks.count()
         return 0

@@ -94,9 +94,12 @@ class Milestone3IntegrationTests(APITestCase):
         tasks_list = self.client.get(reverse("task-list-create"), **auth)
         studies_list = self.client.get(reverse("study-list-create"), **auth)
 
-        self.assertEqual(len(goals_list.data), 1)
-        self.assertEqual(len(tasks_list.data), 1)
-        self.assertEqual(len(studies_list.data), 1)
+        self.assertEqual(goals_list.data["count"], 1)
+        self.assertEqual(len(goals_list.data["results"]), 1)
+        self.assertEqual(tasks_list.data["count"], 1)
+        self.assertEqual(len(tasks_list.data["results"]), 1)
+        self.assertEqual(studies_list.data["count"], 1)
+        self.assertEqual(len(studies_list.data["results"]), 1)
 
         # 8. Delete Goal and verify cascading delete of task and study session
         goal_del_res = self.client.delete(reverse("goal-detail", kwargs={"pk": goal_id}), **auth)

@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 
 def list_resources(*, user, search=None, resource_type=None, goal_id=None, task_id=None):
     """List resources owned by the user with optional search and filters."""
-    queryset = Resource.objects.filter(user=user).select_related("goal", "task", "user")
+    queryset = (
+        Resource.objects.filter(user=user)
+        .select_related("goal", "task", "user")
+        .annotate(chunks_count=models.Count("chunks"))
+    )
 
     if search:
         search_trimmed = search.strip()
@@ -69,7 +73,9 @@ def create_resource(*, user, title, resource_type, description="", file=None, ur
 def get_resource_by_id(*, user, resource_id):
     """Retrieve single resource ensuring ownership."""
     return get_object_or_404(
-        Resource.objects.select_related("goal", "task", "user"),
+        Resource.objects.select_related("goal", "task", "user").annotate(
+            chunks_count=models.Count("chunks")
+        ),
         pk=resource_id,
         user=user,
     )

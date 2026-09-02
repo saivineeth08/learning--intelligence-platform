@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.pagination import StandardResultsSetPagination
 from tasks.serializers import TaskSerializer
 from tasks.services import (
     create_task,
@@ -15,6 +16,7 @@ from tasks.services import (
 
 class TaskListCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
 
     def get(self, request):
         goal_filter = request.query_params.get("goal")
@@ -29,6 +31,12 @@ class TaskListCreateView(APIView):
             priority=priority_filter,
             due_date=due_date_filter,
         )
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(tasks, request)
+        if page is not None:
+            serializer = TaskSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
         serializer = TaskSerializer(tasks, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

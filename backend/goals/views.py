@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.pagination import StandardResultsSetPagination
 from goals.serializers import GoalSerializer
 from goals.services import (
     create_goal,
@@ -15,6 +16,7 @@ from goals.services import (
 
 class GoalListCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
 
     def get(self, request):
         status_filter = request.query_params.get("status")
@@ -27,6 +29,12 @@ class GoalListCreateView(APIView):
             priority=priority_filter,
             category=category_filter,
         )
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(goals, request)
+        if page is not None:
+            serializer = GoalSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
         serializer = GoalSerializer(goals, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

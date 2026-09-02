@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.pagination import StandardResultsSetPagination
 from studies.serializers import StudySessionSerializer
 from studies.services import (
     create_study_session,
@@ -15,6 +16,7 @@ from studies.services import (
 
 class StudySessionListCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
 
     def get(self, request):
         goal_filter = request.query_params.get("goal")
@@ -27,6 +29,12 @@ class StudySessionListCreateView(APIView):
             task_id=task_filter,
             date=date_filter,
         )
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(sessions, request)
+        if page is not None:
+            serializer = StudySessionSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
         serializer = StudySessionSerializer(sessions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.pagination import StandardResultsSetPagination
 from resources.serializers import ResourceSerializer
 from resources.services import (
     create_resource,
@@ -16,6 +17,7 @@ from resources.services import (
 
 class ResourceListCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
@@ -31,6 +33,14 @@ class ResourceListCreateView(APIView):
             goal_id=goal_id,
             task_id=task_id,
         )
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(resources, request)
+        if page is not None:
+            serializer = ResourceSerializer(
+                page, many=True, context={"request": request}
+            )
+            return paginator.get_paginated_response(serializer.data)
+
         serializer = ResourceSerializer(
             resources, many=True, context={"request": request}
         )

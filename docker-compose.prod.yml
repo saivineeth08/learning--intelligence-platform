@@ -44,6 +44,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - media_data:/media
     # Gunicorn: 4 worker processes; adjust to (2 * CPU cores) + 1 for your server
     command: >
       sh -c "python manage.py migrate --no-input &&
@@ -67,3 +69,4 @@ services:
 
 volumes:
   postgres_data:
+  media_data:

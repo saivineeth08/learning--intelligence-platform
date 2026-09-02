@@ -67,9 +67,10 @@ class TasksAPITests(APITestCase):
         response = self.client.get(self.list_create_url, **auth_header(token))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], self.task.pk)
-        self.assertEqual(response.data[0]["title"], "Build Models")
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], self.task.pk)
+        self.assertEqual(response.data["results"][0]["title"], "Build Models")
 
     def test_filter_tasks(self):
         token = self._login(self.user)
@@ -86,21 +87,47 @@ class TasksAPITests(APITestCase):
         res_status = self.client.get(
             f"{self.list_create_url}?status=COMPLETED", **auth_header(token)
         )
-        self.assertEqual(len(res_status.data), 1)
-        self.assertEqual(res_status.data[0]["id"], second_task.pk)
+        self.assertEqual(res_status.data["count"], 1)
+        self.assertEqual(res_status.data["results"][0]["id"], second_task.pk)
 
         # Filter by priority
         res_priority = self.client.get(
             f"{self.list_create_url}?priority=HIGH", **auth_header(token)
         )
-        self.assertEqual(len(res_priority.data), 1)
-        self.assertEqual(res_priority.data[0]["id"], self.task.pk)
+        self.assertEqual(res_priority.data["count"], 1)
+        self.assertEqual(res_priority.data["results"][0]["id"], self.task.pk)
 
         # Filter by goal
         res_goal = self.client.get(
             f"{self.list_create_url}?goal={self.goal.pk}", **auth_header(token)
         )
-        self.assertEqual(len(res_goal.data), 2)
+        self.assertEqual(res_goal.data["count"], 2)
+
+    def test_tasks_pagination(self):
+        token = self._login(self.user)
+        # Create 24 more tasks (total 25)
+        more_tasks = [
+            Task(
+                user=self.user,
+                goal=self.goal,
+                title=f"Task #{i}",
+                status=TaskStatus.TODO,
+                priority=TaskPriority.MEDIUM,
+            )
+            for i in range(24)
+        ]
+        Task.objects.bulk_create(more_tasks)
+
+        # Page 1
+        res_p1 = self.client.get(self.list_create_url, **auth_header(token))
+        self.assertEqual(res_p1.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_p1.data["count"], 25)
+        self.assertEqual(len(res_p1.data["results"]), 20)
+
+        # Page 2
+        res_p2 = self.client.get(f"{self.list_create_url}?page=2", **auth_header(token))
+        self.assertEqual(res_p2.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res_p2.data["results"]), 5)
 
     def test_create_task_success(self):
         token = self._login(self.user)

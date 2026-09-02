@@ -2,7 +2,7 @@ import api from "./api";
 
 export async function getStudySessions(params = {}) {
   const response = await api.get("/api/studies/", { params });
-  return response.data;
+  return Array.isArray(response.data) ? response.data : (response.data?.results ?? response.data);
 }
 
 export async function getStudySession(id) {

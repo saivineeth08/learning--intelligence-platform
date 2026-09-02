@@ -54,9 +54,44 @@ class GoalsAPITests(APITestCase):
         response = self.client.get(self.list_create_url, **auth_header(token))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], self.goal.pk)
-        self.assertEqual(response.data[0]["title"], "Master Python & Django")
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], self.goal.pk)
+        self.assertEqual(response.data["results"][0]["title"], "Master Python & Django")
+
+    def test_goals_pagination_and_page_size(self):
+        token = self._login(self.user)
+        # Create 24 more goals (total 25 for self.user)
+        more_goals = [
+            Goal(
+                user=self.user,
+                title=f"Goal #{i}",
+                status=GoalStatus.ACTIVE,
+                priority=GoalPriority.MEDIUM,
+            )
+            for i in range(24)
+        ]
+        Goal.objects.bulk_create(more_goals)
+
+        # Page 1 (default page size 20)
+        res_p1 = self.client.get(self.list_create_url, **auth_header(token))
+        self.assertEqual(res_p1.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_p1.data["count"], 25)
+        self.assertEqual(len(res_p1.data["results"]), 20)
+        self.assertIsNotNone(res_p1.data["next"])
+        self.assertIsNone(res_p1.data["previous"])
+
+        # Page 2
+        res_p2 = self.client.get(f"{self.list_create_url}?page=2", **auth_header(token))
+        self.assertEqual(res_p2.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res_p2.data["results"]), 5)
+        self.assertIsNone(res_p2.data["next"])
+        self.assertIsNotNone(res_p2.data["previous"])
+
+        # Custom page size
+        res_custom = self.client.get(f"{self.list_create_url}?page_size=10", **auth_header(token))
+        self.assertEqual(res_custom.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res_custom.data["results"]), 10)
 
     def test_create_goal_success(self):
         token = self._login(self.user)

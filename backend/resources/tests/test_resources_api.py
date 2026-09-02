@@ -212,8 +212,9 @@ class ResourceAPITestCase(TestCase):
         )
         response = self.client.get("/api/resources/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["title"], "User 1 Resource")
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["title"], "User 1 Resource")
 
     def test_retrieve_and_ownership_isolation(self):
         own_res = Resource.objects.create(
@@ -318,23 +319,52 @@ class ResourceAPITestCase(TestCase):
 
         # Search by title
         res = self.client.get("/api/resources/?search=Python")
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["id"], r1.id)
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(res.data["results"][0]["id"], r1.id)
 
         # Search by description
         res = self.client.get("/api/resources/?search=ORM")
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["id"], r2.id)
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(res.data["results"][0]["id"], r2.id)
 
         # Filter by goal
         res = self.client.get(f"/api/resources/?goal={self.goal.id}")
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["id"], r1.id)
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(res.data["results"][0]["id"], r1.id)
 
         # Filter by task
         res = self.client.get(f"/api/resources/?task={self.task.id}")
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["id"], r2.id)
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(res.data["results"][0]["id"], r2.id)
+
+    def test_resources_pagination_and_chunks_annotation(self):
+        # Create 24 more resources
+        more_resources = [
+            Resource(
+                user=self.user,
+                title=f"Resource #{i}",
+                resource_type=ResourceType.LINK,
+                url=f"https://resource{i}.com",
+            )
+            for i in range(24)
+        ]
+        Resource.objects.bulk_create(more_resources)
+
+        # Page 1
+        res_p1 = self.client.get("/api/resources/")
+        self.assertEqual(res_p1.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_p1.data["count"], 24)
+        self.assertEqual(len(res_p1.data["results"]), 20)
+        # Verify annotated fields are present and correct
+        self.assertIn("is_indexed", res_p1.data["results"][0])
+        self.assertIn("chunk_count", res_p1.data["results"][0])
+        self.assertFalse(res_p1.data["results"][0]["is_indexed"])
+        self.assertEqual(res_p1.data["results"][0]["chunk_count"], 0)
+
+        # Page 2
+        res_p2 = self.client.get("/api/resources/?page=2")
+        self.assertEqual(res_p2.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res_p2.data["results"]), 4)
 
     def test_cross_user_goal_rejection(self):
         payload = {

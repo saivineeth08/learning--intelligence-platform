@@ -2,7 +2,7 @@ import apiClient from "./api";
 
 export async function getResources(params = {}) {
   const response = await apiClient.get("/api/resources/", { params });
-  return response.data;
+  return Array.isArray(response.data) ? response.data : (response.data?.results ?? response.data);
 }
 
 export async function getResource(id) {

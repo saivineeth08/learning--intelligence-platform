@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.pagination import StandardResultsSetPagination
 from notes.serializers import NoteSerializer
 from notes.services import (
     create_note,
@@ -15,6 +16,7 @@ from notes.services import (
 
 class NoteListCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
 
     def get(self, request):
         search = request.query_params.get("search")
@@ -29,6 +31,12 @@ class NoteListCreateView(APIView):
             task_id=task_id,
             resource_id=resource_id,
         )
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(notes, request)
+        if page is not None:
+            serializer = NoteSerializer(page, many=True, context={"request": request})
+            return paginator.get_paginated_response(serializer.data)
+
         serializer = NoteSerializer(notes, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 

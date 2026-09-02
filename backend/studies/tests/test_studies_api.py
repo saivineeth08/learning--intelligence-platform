@@ -107,9 +107,36 @@ class StudiesAPITests(APITestCase):
         response = self.client.get(self.list_create_url, **auth_header(token))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], self.session.pk)
-        self.assertEqual(response.data[0]["duration_seconds"], 3600)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], self.session.pk)
+        self.assertEqual(response.data["results"][0]["duration_seconds"], 3600)
+
+    def test_study_sessions_pagination(self):
+        token = self._login(self.user)
+        # Create 24 more sessions
+        more_sessions = [
+            StudySession(
+                user=self.user,
+                goal=self.goal,
+                started_at=self.start_time - timedelta(days=i + 1),
+                ended_at=self.end_time - timedelta(days=i + 1),
+                duration_seconds=3600,
+            )
+            for i in range(24)
+        ]
+        StudySession.objects.bulk_create(more_sessions)
+
+        # Page 1
+        res_p1 = self.client.get(self.list_create_url, **auth_header(token))
+        self.assertEqual(res_p1.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_p1.data["count"], 25)
+        self.assertEqual(len(res_p1.data["results"]), 20)
+
+        # Page 2
+        res_p2 = self.client.get(f"{self.list_create_url}?page=2", **auth_header(token))
+        self.assertEqual(res_p2.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res_p2.data["results"]), 5)
 
     def test_create_study_session_with_task_and_duration_calculation(self):
         token = self._login(self.user)
