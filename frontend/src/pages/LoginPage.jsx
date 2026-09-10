@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import GoogleLoginButton from "../components/GoogleLoginButton";
+import PasswordInput from "../components/PasswordInput";
 import { useAuth } from "../context/AuthContext";
 
 function fieldError(error, field) {
@@ -19,11 +21,16 @@ function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (isInitializing) {
-    return <p className="text-slate-600">Loading session...</p>;
+    return (
+      <div className="flex justify-center items-center py-20 text-slate-500 dark:text-slate-400">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent mr-2" />
+        Loading session...
+      </div>
+    );
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/profile" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   function handleChange(event) {
@@ -37,12 +44,13 @@ function LoginPage() {
     setSubmitting(true);
     try {
       await login(form);
-      const next = location.state?.from?.pathname || "/profile";
+      const next = location.state?.from?.pathname || "/dashboard";
       navigate(next, { replace: true });
     } catch (err) {
       setError(
         err.response?.data?.detail ||
           fieldError(err, "username") ||
+          fieldError(err, "password") ||
           "Unable to sign in. Check your credentials.",
       );
     } finally {
@@ -50,53 +58,103 @@ function LoginPage() {
     }
   }
 
+  const handleGoogleSuccess = () => {
+    const next = location.state?.from?.pathname || "/dashboard";
+    navigate(next, { replace: true });
+  };
+
   return (
-    <section className="mx-auto max-w-md space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Sign in</h1>
-        <p className="mt-2 text-slate-600">Use your username and password.</p>
+    <section className="mx-auto max-w-md space-y-6 pt-4 sm:pt-8">
+      <div className="text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          Welcome back
+        </h1>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+          Sign in to access your learning intelligence workspace
+        </p>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
-        {error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        ) : null}
-        <label className="block text-sm font-medium">
-          Username
-          <input
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-            name="username"
-            value={form.username}
-            onChange={handleChange}
-            autoComplete="username"
-            required
-          />
-        </label>
-        <label className="block text-sm font-medium">
-          Password
-          <input
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={handleChange}
-            autoComplete="current-password"
-            required
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-md bg-slate-900 px-4 py-2 font-medium text-white disabled:opacity-60"
+
+      {location.state?.registered ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/90 p-4 text-xs sm:text-sm text-emerald-800 dark:border-emerald-800/80 dark:bg-emerald-950/50 dark:text-emerald-300">
+          <div className="flex gap-2">
+            <span className="text-base">✅</span>
+            <div>
+              <p className="font-semibold">Account created successfully!</p>
+              <p className="mt-0.5">
+                You can now sign in with your credentials below.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs sm:text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 flex items-start gap-2">
+              <span>⚠️</span>
+              <span>{error}</span>
+            </div>
+          ) : null}
+
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+              Email or Username
+            </label>
+            <input
+              className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-800/90 dark:text-white dark:placeholder:text-slate-500"
+              name="username"
+              placeholder="e.g. alex@example.com or alexsmith"
+              value={form.username}
+              onChange={handleChange}
+              autoComplete="username"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+              Password
+            </label>
+            <PasswordInput
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-lg bg-indigo-600 py-2.5 px-4 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 disabled:opacity-60 transition-colors"
+          >
+            {submitting ? "Signing in..." : "Sign in with Credentials"}
+          </button>
+        </form>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white px-2 text-slate-400 dark:bg-slate-900 dark:text-slate-500">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        <GoogleLoginButton onSuccess={handleGoogleSuccess} />
+      </div>
+
+      <p className="text-center text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+        Don&apos;t have an account?{" "}
+        <Link
+          className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 underline"
+          to="/register"
         >
-          {submitting ? "Signing in..." : "Sign in"}
-        </button>
-      </form>
-      <p className="text-sm text-slate-600">
-        Need an account?{" "}
-        <Link className="font-medium text-slate-900 underline" to="/register">
-          Register
+          Create account
         </Link>
       </p>
     </section>

@@ -1,4 +1,8 @@
+import mimetypes
+
+from django.http import FileResponse, Http404
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -89,3 +93,61 @@ class ResourceDetailView(APIView):
         resource = get_resource_by_id(user=request.user, resource_id=pk)
         delete_resource(resource=resource)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ResourceViewFileView(APIView):
+    """Serve a resource file inline for in-browser viewing (e.g., PDF, image, text)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        resource = get_resource_by_id(user=request.user, resource_id=pk)
+        if resource.resource_type != "FILE" or not resource.file:
+            raise ValidationError(
+                {"detail": "This resource does not contain an uploaded file."}
+            )
+
+        try:
+            file_handle = resource.file.open("rb")
+        except Exception:
+            raise Http404("File could not be found on storage.")
+
+        content_type, _ = mimetypes.guess_type(resource.file.name)
+        if not content_type:
+            content_type = "application/octet-stream"
+
+        response = FileResponse(file_handle, content_type=content_type)
+        response["Content-Disposition"] = f'inline; filename="{resource.file_name}"'
+        return response
+
+
+class ResourceDownloadFileView(APIView):
+    """Serve a resource file as an attachment to trigger explicit download."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        resource = get_resource_by_id(user=request.user, resource_id=pk)
+        if resource.resource_type != "FILE" or not resource.file:
+            raise ValidationError(
+                {"detail": "This resource does not contain an uploaded file."}
+            )
+
+        try:
+            file_handle = resource.file.open("rb")
+        except Exception:
+            raise Http404("File could not be found on storage.")
+
+        content_type, _ = mimetypes.guess_type(resource.file.name)
+        if not content_type:
+            content_type = "application/octet-stream"
+
+        response = FileResponse(
+            file_handle,
+            content_type=content_type,
+            as_attachment=True,
+            filename=resource.file_name,
+        )
+        response["Content-Disposition"] = f'attachment; filename="{resource.file_name}"'
+        return response
+

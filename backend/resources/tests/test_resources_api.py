@@ -403,3 +403,60 @@ class ResourceAPITestCase(TestCase):
         }
         response = self.client.post("/api/resources/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_view_file_resource_inline(self):
+        uploaded_file = SimpleUploadedFile(
+            name="document.pdf",
+            content=b"%PDF-1.4 sample content for inline viewing",
+            content_type="application/pdf",
+        )
+        res = Resource.objects.create(
+            user=self.user,
+            title="PDF Document",
+            resource_type=ResourceType.FILE,
+            file=uploaded_file,
+        )
+        response = self.client.get(f"/api/resources/{res.id}/view/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response["Content-Disposition"].startswith("inline"))
+        self.assertEqual(response["Content-Type"], "application/pdf")
+
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.4 sample content for inline viewing")
+
+    def test_download_file_resource_attachment(self):
+        uploaded_file = SimpleUploadedFile(
+            name="guide.pdf",
+            content=b"%PDF-1.4 download guide content",
+            content_type="application/pdf",
+        )
+        res = Resource.objects.create(
+            user=self.user,
+            title="Guide PDF",
+            resource_type=ResourceType.FILE,
+            file=uploaded_file,
+        )
+        response = self.client.get(f"/api/resources/{res.id}/download/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("attachment; filename=", response["Content-Disposition"])
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.4 download guide content")
+
+    def test_cross_user_cannot_view_or_download_resource(self):
+        uploaded_file = SimpleUploadedFile(
+            name="private.pdf",
+            content=b"%PDF-1.4 secret",
+            content_type="application/pdf",
+        )
+        res = Resource.objects.create(
+            user=self.other_user,
+            title="Private PDF",
+            resource_type=ResourceType.FILE,
+            file=uploaded_file,
+        )
+        # Attempting view should 404 (not found in self.user's scope)
+        view_response = self.client.get(f"/api/resources/{res.id}/view/")
+        self.assertEqual(view_response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # Attempting download should 404
+        download_response = self.client.get(f"/api/resources/{res.id}/download/")
+        self.assertEqual(download_response.status_code, status.HTTP_404_NOT_FOUND)
+

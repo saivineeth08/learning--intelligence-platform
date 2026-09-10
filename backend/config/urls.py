@@ -3,6 +3,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from analytics.views import CalendarEventsView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("health/", include("core.urls")),
@@ -13,6 +15,7 @@ urlpatterns = [
     path("api/resources/", include("resources.urls")),
     path("api/notes/", include("notes.urls")),
     path("api/analytics/", include("analytics.urls")),
+    path("api/calendar/", CalendarEventsView.as_view(), name="calendar-events"),
     path("api/ai/", include("ai.urls")),
     path("api/search/", include("search.urls")),
 ]

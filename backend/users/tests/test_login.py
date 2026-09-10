@@ -61,3 +61,13 @@ class LoginAPITests(APITestCase):
         )
 
         self.assertNotIn(VALID_PASSWORD, str(response.content))
+
+    def test_successful_login_with_email(self):
+        response = self.client.post(
+            self.url,
+            {"username": "user@example.com", "password": VALID_PASSWORD},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+

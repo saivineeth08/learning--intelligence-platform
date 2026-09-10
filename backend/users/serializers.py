@@ -6,6 +6,7 @@ from users.models import User
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(required=False, allow_blank=True, default="")
     password = serializers.CharField(write_only=True, trim_whitespace=False)
     password_confirm = serializers.CharField(write_only=True, trim_whitespace=False)
 
@@ -29,7 +30,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value.strip().lower()
 
     def validate_username(self, value):
-        return value.strip()
+        return value.strip() if value else ""
 
     def validate(self, attrs):
         password = attrs["password"]
@@ -39,9 +40,22 @@ class RegisterSerializer(serializers.ModelSerializer):
                 {"password_confirm": "Passwords do not match."}
             )
 
+        email = attrs.get("email", "").strip().lower()
+        username = attrs.get("username", "").strip()
+        if not username and email:
+            base_username = email.split("@")[0]
+            clean_base = "".join(c for c in base_username if c.isalnum() or c in "@.+-_") or "user"
+            candidate = clean_base
+            idx = 1
+            while User.objects.filter(username__iexact=candidate).exists():
+                candidate = f"{clean_base}{idx}"
+                idx += 1
+            attrs["username"] = candidate
+            username = candidate
+
         user = User(
-            username=attrs.get("username", ""),
-            email=attrs.get("email", ""),
+            username=username,
+            email=email,
             first_name=attrs.get("first_name", ""),
             last_name=attrs.get("last_name", ""),
         )
@@ -79,6 +93,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
+            "is_email_verified",
             "date_joined",
             "created_at",
             "updated_at",
@@ -86,6 +101,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         read_only_fields = (
             "id",
             "username",
+            "is_email_verified",
             "date_joined",
             "created_at",
             "updated_at",
@@ -96,6 +112,31 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         return value.strip().lower()
+
+
+class VerifyEmailSerializer(serializers.Serializer):
+    uid = serializers.CharField(required=False)
+    uidb64 = serializers.CharField(required=False)
+    token = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        uid = attrs.get("uid") or attrs.get("uidb64")
+        if not uid:
+            raise serializers.ValidationError({"uid": "User identifier is required."})
+        attrs["uid"] = uid
+        return attrs
+
+
+
+class ResendVerificationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
+class GoogleAuthSerializer(serializers.Serializer):
+    id_token = serializers.CharField(required=True)
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -114,3 +155,4 @@ class ChangePasswordSerializer(serializers.Serializer):
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"new_password": list(exc.messages)}) from exc
         return attrs
+

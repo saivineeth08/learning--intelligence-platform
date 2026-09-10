@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import {
   changePassword as changePasswordRequest,
   getProfile,
+  googleLogin,
   loginUser,
   logoutUser,
   registerUser,
@@ -66,6 +67,15 @@ export function AuthProvider({ children }) {
     [loadProfile],
   );
 
+  const loginWithGoogle = useCallback(
+    async (idToken) => {
+      const tokens = await googleLogin(idToken);
+      setTokens(tokens);
+      return loadProfile();
+    },
+    [loadProfile],
+  );
+
   const register = useCallback(async (payload) => {
     return registerUser(payload);
   }, []);
@@ -100,16 +110,18 @@ export function AuthProvider({ children }) {
       isInitializing,
       isAuthenticated: Boolean(user),
       login,
+      loginWithGoogle,
       register,
       logout,
       updateProfile,
       changePassword,
     }),
-    [user, isInitializing, login, register, logout, updateProfile, changePassword],
+    [user, isInitializing, login, loginWithGoogle, register, logout, updateProfile, changePassword],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
 
 export function useAuth() {
   const context = useContext(AuthContext);

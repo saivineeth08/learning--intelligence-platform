@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import AnalyticsPage from "../pages/AnalyticsPage";
+import CalendarPage from "../pages/CalendarPage";
 import DashboardPage from "../pages/DashboardPage";
 import GoalDetailPage from "../pages/GoalDetailPage";
 import GoalsPage from "../pages/GoalsPage";
@@ -10,6 +11,7 @@ import NotesPage from "../pages/NotesPage";
 import ProfilePage from "../pages/ProfilePage";
 import RecommendationsPage from "../pages/RecommendationsPage";
 import RegisterPage from "../pages/RegisterPage";
+import VerifyEmailPage from "../pages/VerifyEmailPage";
 import DocumentChatPage from "../pages/DocumentChatPage";
 import QuizGeneratorPage from "../pages/QuizGeneratorPage";
 import ResourcesPage from "../pages/ResourcesPage";
@@ -36,11 +38,20 @@ export const router = createBrowserRouter([
         element: <RegisterPage />,
       },
       {
+        path: "verify-email",
+        element: <VerifyEmailPage />,
+      },
+      {
         element: <ProtectedRoute />,
+
         children: [
           {
             path: "dashboard",
             element: <DashboardPage />,
+          },
+          {
+            path: "calendar",
+            element: <CalendarPage />,
           },
           {
             path: "analytics",

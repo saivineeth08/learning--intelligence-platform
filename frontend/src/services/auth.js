@@ -33,3 +33,19 @@ export async function updateProfile(payload) {
 export async function changePassword(payload) {
   await api.post("/api/auth/change-password/", payload);
 }
+
+export async function verifyEmail(payload) {
+  const response = await api.post("/api/auth/verify-email/", payload);
+  return response.data;
+}
+
+export async function resendVerification(email) {
+  const response = await api.post("/api/auth/resend-verification/", { email });
+  return response.data;
+}
+
+export async function googleLogin(id_token) {
+  const response = await api.post("/api/auth/google/", { id_token });
+  return response.data;
+}
+

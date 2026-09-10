@@ -91,16 +91,28 @@ function TasksPage() {
     }
   }
 
+  const [modalError, setModalError] = useState("");
+  const selectedGoal = goals.find((g) => String(g.id) === String(form.goal));
+
   async function handleSubmit(e) {
     e.preventDefault();
+    setModalError("");
     setSubmitting(true);
     setError("");
+
+    if (form.due_date && selectedGoal?.target_date && form.due_date > selectedGoal.target_date) {
+      setModalError(`Task due date (${form.due_date}) cannot be after the goal target date (${selectedGoal.target_date}).`);
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const payload = {
         ...form,
         goal: parseInt(form.goal, 10),
         due_date: form.due_date || null,
       };
+
       if (editingTask) {
         await updateTask(editingTask.id, payload);
       } else {
@@ -109,7 +121,12 @@ function TasksPage() {
       setShowModal(false);
       await loadData();
     } catch (err) {
-      setError("Failed to save task. Please ensure all required fields are valid.");
+      const msg =
+        err.response?.data?.due_date?.[0] ||
+        err.response?.data?.goal?.[0] ||
+        err.response?.data?.detail ||
+        "Failed to save task. Please check the submitted fields.";
+      setModalError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -125,55 +142,43 @@ function TasksPage() {
     }
   }
 
-  const statusColors = {
-    TODO: "bg-slate-100 text-slate-700",
-    IN_PROGRESS: "bg-blue-50 text-blue-700 border-blue-200",
-    COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    CANCELLED: "bg-red-50 text-red-600 border-red-200",
-  };
-
-  const priorityColors = {
-    LOW: "bg-slate-100 text-slate-600",
-    MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
-    HIGH: "bg-rose-50 text-rose-700 border-rose-200",
-  };
-
   return (
     <section className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-          <p className="mt-1 text-slate-600">Actionable learning items across all your goals.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Action Tasks
+          </h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Break down goals into actionable, prioritized study steps.
+          </p>
         </div>
         <button
           onClick={openCreate}
           disabled={goals.length === 0}
-          className="self-start rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+          className="self-start inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 disabled:opacity-50 transition-colors"
         >
-          + New Task
+          <span>+</span>
+          <span>Add Task</span>
         </button>
       </div>
 
       {error ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
           {error}
-        </p>
-      ) : null}
-
-      {goals.length === 0 && !loading ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          You need to create at least one <Link to="/goals" className="font-semibold underline">Learning Goal</Link> before adding tasks.
         </div>
       ) : null}
 
       {/* Filter Bar */}
-      <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg border border-slate-200">
+      <div className="flex flex-wrap gap-3 items-center rounded-xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Goal</label>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+            Goal
+          </label>
           <select
             value={goalFilter}
             onChange={(e) => setGoalFilter(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 max-w-[180px] truncate"
           >
             <option value="">All Goals</option>
             {goals.map((g) => (
@@ -183,26 +188,31 @@ function TasksPage() {
             ))}
           </select>
         </div>
+
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Status</label>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+            Status
+          </label>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           >
             <option value="">All Statuses</option>
             <option value="TODO">To Do</option>
             <option value="IN_PROGRESS">In Progress</option>
             <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
           </select>
         </div>
+
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Priority</label>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+            Priority
+          </label>
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           >
             <option value="">All Priorities</option>
             <option value="HIGH">High</option>
@@ -214,179 +224,230 @@ function TasksPage() {
 
       {/* Task List */}
       {loading ? (
-        <p className="text-slate-600">Loading tasks...</p>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+          ))}
+        </div>
       ) : tasks.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
-          <p className="text-slate-600 font-medium">No tasks found.</p>
+        <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 mb-3 text-2xl">
+            ✓
+          </div>
+          <p className="text-slate-900 dark:text-white font-semibold text-lg">No tasks found</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            {goals.length === 0
+              ? "Create a goal first before adding tasks."
+              : "Add your first study task to get momentum."}
+          </p>
           {goals.length > 0 ? (
             <button
               onClick={openCreate}
-              className="mt-4 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+              className="mt-5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500"
             >
               Add First Task
             </button>
-          ) : null}
+          ) : (
+            <Link
+              to="/goals"
+              className="mt-5 inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500"
+            >
+              Create a Goal
+            </Link>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
           {tasks.map((task) => (
             <div
               key={task.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-slate-200 bg-white p-4 gap-3 hover:border-slate-300 shadow-xs"
+              className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 shadow-2xs transition-all"
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3.5 flex-1 min-w-0 pr-4">
                 <input
                   type="checkbox"
                   checked={task.status === "COMPLETED"}
                   onChange={() => handleToggleStatus(task)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 cursor-pointer"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
                 />
-                <div>
-                  <p className={`font-semibold text-sm ${task.status === "COMPLETED" ? "line-through text-slate-400" : "text-slate-900"}`}>
-                    {task.title}
-                  </p>
-                  {task.description ? (
-                    <p className="text-xs text-slate-600 mt-0.5">{task.description}</p>
-                  ) : null}
-                  <div className="flex flex-wrap gap-2 mt-2 items-center">
-                    <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-medium">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p
+                      className={`text-sm font-bold ${
+                        task.status === "COMPLETED"
+                          ? "line-through text-slate-400 dark:text-slate-500"
+                          : "text-slate-900 dark:text-white"
+                      }`}
+                    >
+                      {task.title}
+                    </p>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                       🎯 {task.goal_title}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusColors[task.status] || "bg-slate-100"}`}>
-                      {task.status}
-                    </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${priorityColors[task.priority] || "bg-slate-100"}`}>
-                      {task.priority}
-                    </span>
                   </div>
+
+                  {task.description ? (
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                      {task.description}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
-              <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1 text-xs text-slate-500 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                {task.due_date ? <span>Due: {task.due_date}</span> : <span>No due date</span>}
-                <div className="flex items-center gap-2 mt-1">
-                  <button
-                    onClick={() => openEdit(task)}
-                    className="font-medium text-slate-700 hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <span>•</span>
-                  <button
-                    onClick={() => handleDelete(task.id)}
-                    className="font-medium text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </div>
+              <div className="flex items-center gap-3 shrink-0 text-xs">
+                {task.due_date ? (
+                  <span className="hidden sm:inline text-slate-500 dark:text-slate-400">
+                    📅 {task.due_date}
+                  </span>
+                ) : null}
+
+                <span
+                  className={`px-2 py-0.5 rounded-md font-semibold text-[11px] ${
+                    task.priority === "HIGH"
+                      ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                      : "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
+                  }`}
+                >
+                  {task.priority}
+                </span>
+
+                <button
+                  onClick={() => openEdit(task)}
+                  className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(task.id)}
+                  className="text-red-600 dark:text-red-400 font-semibold hover:underline"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Create / Edit Modal */}
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
-            <h2 className="text-xl font-bold">
-              {editingTask ? "Edit Task" : "Create Task"}
-            </h2>
+      {/* Task Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                {editingTask ? "Edit Task" : "Create Study Task"}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-              <label className="block text-sm font-medium">
-                Goal *
+              {modalError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
+                  ⚠️ {modalError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                  Goal *
+                </label>
                 <select
                   name="goal"
                   value={form.goal}
                   onChange={handleFormChange}
                   required
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 >
-                  <option value="" disabled>Select a goal</option>
+                  <option value="">Select a Goal</option>
                   {goals.map((g) => (
                     <option key={g.id} value={g.id}>
-                      {g.title}
+                      {g.title} {g.target_date ? `(Deadline: ${g.target_date})` : ""}
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
 
-              <label className="block text-sm font-medium">
-                Title *
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                  Title *
+                </label>
                 <input
                   name="title"
                   value={form.title}
                   onChange={handleFormChange}
+                  placeholder="e.g. Solve 5 Dynamic Programming Problems"
                   required
-                  placeholder="e.g. Implement Binary Search Tree"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
-              </label>
+              </div>
 
-              <label className="block text-sm font-medium">
-                Description
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                  Description
+                </label>
                 <textarea
                   name="description"
                   value={form.description}
                   onChange={handleFormChange}
-                  rows={3}
-                  placeholder="Task details and deliverables"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  rows={2}
+                  placeholder="Optional details or instructions"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
-              </label>
+              </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <label className="block text-sm font-medium">
-                  Status
-                  <select
-                    name="status"
-                    value={form.status}
-                    onChange={handleFormChange}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                  >
-                    <option value="TODO">To Do</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="CANCELLED">Cancelled</option>
-                  </select>
-                </label>
-                <label className="block text-sm font-medium">
-                  Priority
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                    Priority
+                  </label>
                   <select
                     name="priority"
                     value={form.priority}
                     onChange={handleFormChange}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   >
                     <option value="HIGH">High</option>
                     <option value="MEDIUM">Medium</option>
                     <option value="LOW">Low</option>
                   </select>
-                </label>
-                <label className="block text-sm font-medium">
-                  Due Date
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                    Due Date
+                  </label>
                   <input
                     type="date"
                     name="due_date"
                     value={form.due_date}
+                    max={selectedGoal?.target_date || undefined}
                     onChange={handleFormChange}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
-                </label>
+                  {selectedGoal?.target_date && (
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Max: {selectedGoal.target_date} (Goal deadline)
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
+                  className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-500 disabled:opacity-60"
                 >
                   {submitting ? "Saving..." : editingTask ? "Update Task" : "Create Task"}
                 </button>
@@ -394,7 +455,7 @@ function TasksPage() {
             </form>
           </div>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }

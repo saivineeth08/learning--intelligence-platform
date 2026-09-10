@@ -18,3 +18,10 @@ class TokenOwnershipError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "Refresh token does not belong to the authenticated user."
     default_code = "token_ownership"
+
+
+class EmailNotVerifiedError(APIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    default_detail = "Please verify your email address before signing in."
+    default_code = "email_not_verified"
+

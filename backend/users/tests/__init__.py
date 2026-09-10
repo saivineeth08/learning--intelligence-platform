@@ -24,6 +24,7 @@ def create_user(**overrides):
         "password": VALID_PASSWORD,
         "first_name": "Sai",
         "last_name": "Vineeth",
+        "is_email_verified": True,
     }
     defaults.update(overrides)
     password = defaults.pop("password")

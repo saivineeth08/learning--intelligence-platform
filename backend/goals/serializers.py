@@ -41,3 +41,18 @@ class GoalSerializer(serializers.ModelSerializer):
 
     def validate_category(self, value):
         return value.strip() if value else ""
+
+    def validate(self, attrs):
+        target_date = attrs.get("target_date")
+        if target_date is not None and self.instance is not None:
+            violating_tasks = self.instance.tasks.filter(due_date__gt=target_date)
+            if violating_tasks.exists():
+                first_task = violating_tasks.first()
+                raise serializers.ValidationError(
+                    {
+                        "target_date": (
+                            f"Goal target date ({target_date}) cannot be earlier than existing task '{first_task.title}' due date ({first_task.due_date})."
+                        )
+                    }
+                )
+        return attrs

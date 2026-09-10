@@ -43,11 +43,13 @@ class ProfileAPITests(APITestCase):
                 "email",
                 "first_name",
                 "last_name",
+                "is_email_verified",
                 "date_joined",
                 "created_at",
                 "updated_at",
             },
         )
+
         self.assertNotIn("password", response.data)
         self.assertNotIn("is_staff", response.data)
         self.assertNotIn("is_superuser", response.data)

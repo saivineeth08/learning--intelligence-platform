@@ -1,6 +1,6 @@
 import logging
 
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -29,6 +29,10 @@ def create_task(*, user, goal, **validated_data):
     if goal.user_id != user.id:
         raise PermissionDenied("Cannot create task for a goal owned by another user.")
 
+    due_date = validated_data.get("due_date")
+    if due_date and goal.target_date and due_date > goal.target_date:
+        raise ValidationError({"due_date": f"Task due date ({due_date}) cannot be after the goal target date ({goal.target_date})."})
+
     status_val = validated_data.get("status", TaskStatus.TODO)
     completed_at = timezone.now() if status_val == TaskStatus.COMPLETED else None
 
@@ -50,10 +54,13 @@ def get_task_by_id(*, user, task_id):
 
 def update_task(*, task, validated_data):
     """Update task fields and manage completed_at transitions."""
-    if "goal" in validated_data:
-        new_goal = validated_data["goal"]
-        if new_goal.user_id != task.user_id:
-            raise PermissionDenied("Cannot move task to a goal owned by another user.")
+    new_goal = validated_data.get("goal", task.goal)
+    if "goal" in validated_data and new_goal.user_id != task.user_id:
+        raise PermissionDenied("Cannot move task to a goal owned by another user.")
+
+    new_due_date = validated_data.get("due_date", task.due_date)
+    if new_due_date and new_goal and new_goal.target_date and new_due_date > new_goal.target_date:
+        raise ValidationError({"due_date": f"Task due date ({new_due_date}) cannot be after the goal target date ({new_goal.target_date})."})
 
     if "status" in validated_data:
         new_status = validated_data["status"]

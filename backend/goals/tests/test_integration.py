@@ -25,7 +25,7 @@ class Milestone3IntegrationTests(APITestCase):
         reg_res = self.client.post(reverse("auth-register"), reg_payload, format="json")
         self.assertEqual(reg_res.status_code, status.HTTP_201_CREATED)
 
-        # 2. Login User
+        # 2. Login User directly
         login_res = self.client.post(
             reverse("auth-login"),
             {"username": "integrator", "password": VALID_PASSWORD},

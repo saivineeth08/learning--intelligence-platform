@@ -78,18 +78,19 @@ def generate_quiz(
     # Prepare prompt
     system_prompt = (
         "You are an expert educator who generates high-quality multiple choice quizzes. "
+        "Generate distinct, thoughtful multiple-choice questions strictly based on the provided material. "
         "Strictly adhere to the provided JSON schema."
     )
     user_prompt = (
-        f"Generate {question_count} multiple-choice questions with difficulty level {diff_choice} "
+        f"Generate {question_count} unique multiple-choice questions with difficulty level {diff_choice} "
         f"based on the following learning material:\n\n"
         f"{combined_text[:4000]}\n\n"
         "Return a valid JSON object with the key 'questions' containing a list of question objects. "
         "Each object must have exactly:\n"
-        "- 'question': string\n"
-        "- 'options': list of 4 distinct answer strings\n"
-        "- 'correct_answer': the exact text of the correct option\n"
-        "- 'explanation': explanation of why the answer is correct\n"
+        "- 'question': string (unique question text)\n"
+        "- 'options': list of 4 distinct answer choices\n"
+        "- 'correct_answer': the exact text of the correct option (must match one of the 4 options)\n"
+        "- 'explanation': a clear explanation of why the correct answer is right based on the material\n"
         "- 'difficulty': 'EASY', 'MEDIUM', or 'HARD'"
     )
 
@@ -106,22 +107,30 @@ def generate_quiz(
         elif "data" in raw_result and isinstance(raw_result["data"], list):
             question_data = raw_result["data"]
         elif "mock" in raw_result:
-            # Deterministic mock fallback for mock provider
-            question_data = [
-                {
-                    "question": f"Sample question {i + 1} on {resource.title if resource else 'Learning'}: What is a core concept?",
-                    "options": [
-                        "A fundamental building block",
-                        "An unrelated peripheral detail",
-                        "A deprecated legacy method",
-                        "An incorrect assertion",
-                    ],
-                    "correct_answer": "A fundamental building block",
-                    "explanation": "Core concepts form the fundamental foundation of the subject.",
-                    "difficulty": diff_choice,
-                }
-                for i in range(question_count)
+            # Diverse deterministic mock questions for test environments
+            topics = [
+                "Core Architecture & Fundamentals",
+                "Data Flow & Optimization",
+                "Key Algorithms & Complexity",
+                "State Management & Execution",
+                "Security & Best Practices",
             ]
+            target_name = resource.title if resource else (goal.title if goal else "the Subject")
+            question_data = []
+            for i in range(question_count):
+                topic = topics[i % len(topics)]
+                question_data.append({
+                    "question": f"Regarding {target_name} ({topic}): Which statement is correct?",
+                    "options": [
+                        f"It implements {topic.lower()} to ensure reliable learning execution.",
+                        "It bypasses data validation to maximize speed at the cost of correctness.",
+                        "It is an obsolete pattern no longer recommended for modern architectures.",
+                        "It requires unrelated third-party microservices for simple operations.",
+                    ],
+                    "correct_answer": f"It implements {topic.lower()} to ensure reliable learning execution.",
+                    "explanation": f"Understanding {topic.lower()} is essential to mastering {target_name}.",
+                    "difficulty": diff_choice,
+                })
     elif isinstance(raw_result, list):
         question_data = raw_result
 
@@ -141,8 +150,12 @@ def generate_quiz(
             title=quiz_title,
         )
 
+        seen_questions = set()
         created_questions = []
-        for item in question_data[:question_count]:
+        for item in question_data:
+            if len(created_questions) >= question_count:
+                break
+
             q_text = str(item.get("question", "")).strip()
             options = item.get("options", [])
             correct = str(item.get("correct_answer", "")).strip()
@@ -152,8 +165,28 @@ def generate_quiz(
             if not q_text or not options or not correct:
                 continue
 
+            # Deduplicate questions
+            q_lower = q_text.lower()
+            if q_lower in seen_questions:
+                continue
+            seen_questions.add(q_lower)
+
             if not isinstance(options, list) or len(options) < 2:
                 continue
+
+            # Clean options
+            clean_opts = [str(opt).strip() for opt in options if str(opt).strip()]
+            if len(clean_opts) < 2:
+                continue
+
+            # Ensure correct answer is one of the options
+            if correct not in clean_opts:
+                # Check for case-insensitive match or add if missing
+                matched = next((opt for opt in clean_opts if opt.lower() == correct.lower()), None)
+                if matched:
+                    correct = matched
+                else:
+                    clean_opts[0] = correct
 
             if diff not in QuizQuestion.DifficultyChoices.values:
                 diff = diff_choice
@@ -162,7 +195,7 @@ def generate_quiz(
                 QuizQuestion(
                     quiz=quiz,
                     question=q_text,
-                    options=options,
+                    options=clean_opts,
                     correct_answer=correct,
                     explanation=expl or "No explanation provided.",
                     difficulty=diff,

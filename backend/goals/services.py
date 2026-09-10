@@ -1,5 +1,6 @@
 import logging
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
@@ -34,7 +35,19 @@ def get_goal_by_id(*, user, goal_id):
 
 
 def update_goal(*, goal, validated_data):
-    """Update goal fields safely."""
+    """Update goal fields safely with date validation against child tasks."""
+    if "target_date" in validated_data and validated_data["target_date"] is not None:
+        new_target = validated_data["target_date"]
+        violating_task = goal.tasks.filter(due_date__gt=new_target).first()
+        if violating_task:
+            raise ValidationError(
+                {
+                    "target_date": (
+                        f"Goal target date ({new_target}) cannot be earlier than existing task '{violating_task.title}' due date ({violating_task.due_date})."
+                    )
+                }
+            )
+
     for field, value in validated_data.items():
         setattr(goal, field, value)
     goal.save(update_fields=[*validated_data.keys(), "updated_at"])

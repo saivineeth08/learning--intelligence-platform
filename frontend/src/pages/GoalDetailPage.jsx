@@ -75,6 +75,13 @@ function GoalDetailPage() {
     e.preventDefault();
     setSubmittingTask(true);
     setError("");
+
+    if (taskDueDate && goal.target_date && taskDueDate > goal.target_date) {
+      setError(`Task due date (${taskDueDate}) cannot be after the goal target date (${goal.target_date}).`);
+      setSubmittingTask(false);
+      return;
+    }
+
     try {
       await createTask({
         goal: parseInt(id, 10),
@@ -91,7 +98,11 @@ function GoalDetailPage() {
       setShowTaskModal(false);
       await loadData();
     } catch (err) {
-      setError("Failed to create task.");
+      const msg =
+        err.response?.data?.due_date?.[0] ||
+        err.response?.data?.detail ||
+        "Failed to create task.";
+      setError(msg);
     } finally {
       setSubmittingTask(false);
     }
@@ -122,7 +133,7 @@ function GoalDetailPage() {
   }
 
   async function handleDeleteGoal() {
-    if (!window.confirm("Are you sure you want to delete this goal and all associated data?")) return;
+    if (!window.confirm("Are you sure you want to delete this goal and all associated tasks/resources?")) return;
     try {
       await deleteGoal(id);
       navigate("/goals", { replace: true });
@@ -138,15 +149,19 @@ function GoalDetailPage() {
   );
 
   if (loading) {
-    return <p className="text-slate-600">Loading goal details...</p>;
+    return (
+      <div className="py-20 text-center text-slate-500 dark:text-slate-400">
+        Loading goal details...
+      </div>
+    );
   }
 
   if (!goal) {
     return (
-      <div className="space-y-4">
-        <p className="text-red-700">Goal not found.</p>
-        <Link to="/goals" className="text-sm font-medium underline">
-          &larr; Back to Goals
+      <div className="space-y-4 text-center py-20">
+        <p className="text-red-600 dark:text-red-400 font-semibold">Goal not found.</p>
+        <Link to="/goals" className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 underline">
+          ← Back to Goals
         </Link>
       </div>
     );
@@ -155,19 +170,22 @@ function GoalDetailPage() {
   return (
     <section className="space-y-8">
       <div className="flex items-center justify-between">
-        <Link to="/goals" className="text-sm font-medium text-slate-600 hover:text-slate-900">
-          &larr; Back to Goals
+        <Link
+          to="/goals"
+          className="text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+        >
+          ← Back to Goals
         </Link>
         <div className="flex gap-2">
           <button
             onClick={() => setEditingGoal(!editingGoal)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           >
             {editingGoal ? "Cancel Edit" : "Edit Goal"}
           </button>
           <button
             onClick={handleDeleteGoal}
-            className="rounded-md border border-red-200 text-red-700 px-3 py-1.5 text-xs font-medium hover:bg-red-50"
+            className="rounded-lg border border-red-200 text-red-700 px-3 py-1.5 text-xs font-semibold hover:bg-red-50 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/40"
           >
             Delete Goal
           </button>
@@ -175,123 +193,147 @@ function GoalDetailPage() {
       </div>
 
       {error ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
           {error}
-        </p>
+        </div>
       ) : null}
 
       {/* Goal Header Card */}
       {editingGoal ? (
-        <form onSubmit={handleSaveGoal} className="rounded-xl border border-slate-200 bg-white p-6 space-y-4 shadow-xs">
-          <h2 className="text-lg font-bold">Edit Goal</h2>
-          <label className="block text-sm font-medium">
-            Title
+        <form
+          onSubmit={handleSaveGoal}
+          className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-xs dark:border-slate-800 dark:bg-slate-900"
+        >
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">Edit Goal</h2>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+              Title
+            </label>
             <input
               name="title"
               value={goalForm.title}
               onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
               required
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
-          </label>
-          <label className="block text-sm font-medium">
-            Description
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+              Description
+            </label>
             <textarea
               name="description"
               value={goalForm.description}
               onChange={(e) => setGoalForm({ ...goalForm, description: e.target.value })}
               rows={3}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <label className="block text-sm font-medium">
-              Category
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                Category
+              </label>
               <input
                 name="category"
                 value={goalForm.category}
                 onChange={(e) => setGoalForm({ ...goalForm, category: e.target.value })}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
-            </label>
-            <label className="block text-sm font-medium">
-              Target Date
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                Target Date
+              </label>
               <input
                 type="date"
                 name="target_date"
                 value={goalForm.target_date}
                 onChange={(e) => setGoalForm({ ...goalForm, target_date: e.target.value })}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
-            </label>
-            <label className="block text-sm font-medium">
-              Status
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                Status
+              </label>
               <select
                 name="status"
                 value={goalForm.status}
                 onChange={(e) => setGoalForm({ ...goalForm, status: e.target.value })}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               >
                 <option value="ACTIVE">Active</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="ARCHIVED">Archived</option>
               </select>
-            </label>
-            <label className="block text-sm font-medium">
-              Priority
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                Priority
+              </label>
               <select
                 name="priority"
                 value={goalForm.priority}
                 onChange={(e) => setGoalForm({ ...goalForm, priority: e.target.value })}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               >
                 <option value="HIGH">High</option>
                 <option value="MEDIUM">Medium</option>
                 <option value="LOW">Low</option>
               </select>
-            </label>
+            </div>
           </div>
-          <button type="submit" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+          <button
+            type="submit"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-500"
+          >
             Save Changes
           </button>
         </form>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <h1 className="text-2xl font-bold">{goal.title}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{goal.title}</h1>
             <div className="flex gap-2">
-              <span className="text-xs px-2.5 py-1 rounded-full border font-medium bg-slate-100">
+              <span className="text-xs px-2.5 py-0.5 rounded-full border font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
                 {goal.status}
               </span>
-              <span className="text-xs px-2.5 py-1 rounded-full border font-medium bg-blue-50 text-blue-700 border-blue-200">
+              <span className="text-xs px-2.5 py-0.5 rounded-full border font-semibold bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-900">
                 {goal.priority} Priority
               </span>
             </div>
           </div>
 
           {goal.category ? (
-            <span className="inline-block text-xs font-medium text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded">
+            <span className="inline-block text-xs font-medium text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-300 px-2.5 py-0.5 rounded-md">
               {goal.category}
             </span>
           ) : null}
 
           {goal.description ? (
-            <p className="text-slate-600 text-sm whitespace-pre-wrap">{goal.description}</p>
+            <p className="text-slate-600 dark:text-slate-400 text-sm whitespace-pre-wrap">{goal.description}</p>
           ) : null}
 
           {/* Quick Stats Grid */}
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-100 text-center">
+          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
             <div>
-              <p className="text-xs text-slate-500 font-medium">Task Progress</p>
-              <p className="text-lg font-bold mt-0.5">{completedTasks}/{tasks.length} ({progressPercent}%)</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Task Progress</p>
+              <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-0.5">
+                {completedTasks}/{tasks.length} ({progressPercent}%)
+              </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500 font-medium">Study Time</p>
-              <p className="text-lg font-bold mt-0.5">{totalStudyMinutes} mins</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Study Time</p>
+              <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-0.5">
+                {totalStudyMinutes} mins
+              </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500 font-medium">Target Date</p>
-              <p className="text-lg font-bold mt-0.5">{goal.target_date || "None"}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Target Date</p>
+              <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-0.5">
+                {goal.target_date || "None"}
+              </p>
             </div>
           </div>
         </div>
@@ -301,48 +343,60 @@ function GoalDetailPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold">Goal Tasks</h2>
-            <p className="text-sm text-slate-500">Actionable steps to achieve this goal.</p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Goal Tasks</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Milestones and steps to achieve this goal.</p>
           </div>
           <button
             onClick={() => setShowTaskModal(true)}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+            className="rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-indigo-500"
           >
             + Add Task
           </button>
         </div>
 
         {tasks.length === 0 ? (
-          <p className="text-sm text-slate-500 py-4 italic">No tasks created for this goal yet.</p>
+          <div className="text-center py-8 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+            No tasks created for this goal yet.
+          </div>
         ) : (
           <div className="space-y-2">
             {tasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3.5 hover:border-slate-300"
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3.5 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 shadow-2xs"
               >
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
                     checked={task.status === "COMPLETED"}
                     onChange={() => handleToggleTask(task)}
-                    className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                   />
                   <div>
-                    <p className={`text-sm font-medium ${task.status === "COMPLETED" ? "line-through text-slate-400" : "text-slate-900"}`}>
+                    <p
+                      className={`text-sm font-semibold ${
+                        task.status === "COMPLETED"
+                          ? "line-through text-slate-400 dark:text-slate-500"
+                          : "text-slate-900 dark:text-white"
+                      }`}
+                    >
                       {task.title}
                     </p>
                     {task.description ? (
-                      <p className="text-xs text-slate-500">{task.description}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{task.description}</p>
                     ) : null}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs">
-                  {task.due_date ? <span className="text-slate-500">Due: {task.due_date}</span> : null}
-                  <span className="px-2 py-0.5 rounded bg-slate-100 font-medium text-slate-700">{task.priority}</span>
+                  {task.due_date ? (
+                    <span className="text-slate-500 dark:text-slate-400">Due: {task.due_date}</span>
+                  ) : null}
+                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 font-semibold text-[11px]">
+                    {task.priority}
+                  </span>
                   <button
                     onClick={() => handleDeleteTask(task.id)}
-                    className="text-red-600 hover:underline"
+                    className="text-red-600 dark:text-red-400 hover:underline font-medium"
                   >
                     Delete
                   </button>
@@ -354,34 +408,47 @@ function GoalDetailPage() {
       </div>
 
       {/* Study Sessions Section */}
-      <div className="space-y-4 pt-4 border-t border-slate-200">
+      <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold">Study Sessions</h2>
-            <p className="text-sm text-slate-500">Logged learning sessions for this goal.</p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Study Sessions</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Logged learning sessions associated with this goal.</p>
           </div>
           <Link
             to="/study-sessions"
-            className="text-xs font-medium text-blue-600 hover:underline"
+            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
           >
-            Go to Sessions &rarr;
+            All Sessions →
           </Link>
         </div>
 
         {sessions.length === 0 ? (
-          <p className="text-sm text-slate-500 py-4 italic">No study sessions logged for this goal yet.</p>
+          <div className="text-center py-6 text-xs text-slate-500 dark:text-slate-400">
+            No study sessions logged for this goal yet.
+          </div>
         ) : (
           <div className="space-y-2">
             {sessions.map((s) => (
-              <div key={s.id} className="rounded-lg border border-slate-200 bg-white p-3.5 flex justify-between items-center text-sm">
+              <div
+                key={s.id}
+                className="rounded-xl border border-slate-200 bg-white p-3.5 flex justify-between items-center text-xs dark:border-slate-800 dark:bg-slate-900"
+              >
                 <div>
-                  <p className="font-medium text-slate-900">
+                  <p className="font-bold text-slate-900 dark:text-white">
                     {Math.round(s.duration_seconds / 60)} minutes
-                    {s.task_title ? <span className="text-xs font-normal text-slate-500 ml-2">({s.task_title})</span> : null}
+                    {s.task_title ? (
+                      <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-2">
+                        ({s.task_title})
+                      </span>
+                    ) : null}
                   </p>
-                  <p className="text-xs text-slate-500">{new Date(s.started_at).toLocaleString()}</p>
+                  <p className="text-slate-400 dark:text-slate-500 mt-0.5">
+                    {new Date(s.started_at).toLocaleString()}
+                  </p>
                 </div>
-                {s.notes ? <p className="text-xs text-slate-600 italic max-w-xs truncate">{s.notes}</p> : null}
+                {s.notes ? (
+                  <p className="text-slate-600 dark:text-slate-400 italic max-w-xs truncate">{s.notes}</p>
+                ) : null}
               </div>
             ))}
           </div>
@@ -390,64 +457,78 @@ function GoalDetailPage() {
 
       {/* Create Task Modal */}
       {showTaskModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <h2 className="text-lg font-bold">Add Task to {goal.title}</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Add Task to {goal.title}</h2>
             <form onSubmit={handleCreateTask} className="mt-4 space-y-4">
-              <label className="block text-sm font-medium">
-                Title *
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                  Title *
+                </label>
                 <input
                   value={taskTitle}
                   onChange={(e) => setTaskTitle(e.target.value)}
                   required
-                  placeholder="e.g. Study Binary Search"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  placeholder="e.g. Study Graph Algorithms Chapter 2"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
-              </label>
-              <label className="block text-sm font-medium">
-                Description
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                  Description
+                </label>
                 <textarea
                   value={taskDesc}
                   onChange={(e) => setTaskDesc(e.target.value)}
                   rows={2}
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <label className="block text-sm font-medium">
-                  Priority
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                    Priority
+                  </label>
                   <select
                     value={taskPriority}
                     onChange={(e) => setTaskPriority(e.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   >
                     <option value="HIGH">High</option>
                     <option value="MEDIUM">Medium</option>
                     <option value="LOW">Low</option>
                   </select>
-                </label>
-                <label className="block text-sm font-medium">
-                  Due Date
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                    Due Date
+                  </label>
                   <input
                     type="date"
                     value={taskDueDate}
+                    max={goal.target_date || undefined}
                     onChange={(e) => setTaskDueDate(e.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
-                </label>
+                  {goal.target_date && (
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Max: {goal.target_date} (Goal deadline)
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowTaskModal(false)}
-                  className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
+                  className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingTask}
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-500 disabled:opacity-60"
                 >
                   {submittingTask ? "Saving..." : "Add Task"}
                 </button>

@@ -115,3 +115,18 @@ class RegistrationAPITests(APITestCase):
             format="json",
         )
         self.assertFalse(User.objects.exists())
+
+    def test_email_only_registration_auto_generates_username(self):
+        payload = {
+            "email": "coollearner@example.com",
+            "password": VALID_PASSWORD,
+            "password_confirm": VALID_PASSWORD,
+            "first_name": "Cool",
+            "last_name": "Learner",
+        }
+        response = self.client.post(self.url, payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["email"], "coollearner@example.com")
+        self.assertTrue(response.data["username"].startswith("coollearner"))
+        self.assertTrue(User.objects.filter(email="coollearner@example.com").exists())
+

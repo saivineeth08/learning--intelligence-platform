@@ -150,7 +150,7 @@ function DocumentChatPage() {
       setError(
         err?.response?.data?.error ||
           err?.response?.data?.message ||
-          "Failed to generate AI response. Please verify the backend connection."
+          "Failed to generate AI response. Please verify the backend AI configuration."
       );
     } finally {
       setSendingMessage(false);
@@ -183,18 +183,18 @@ function DocumentChatPage() {
     <section className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Document Chat & Knowledge Q&A</h1>
-        <p className="mt-1 text-slate-600">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Document Chat & Knowledge Q&A</h1>
+        <p className="mt-1 text-slate-600 dark:text-slate-400">
           Ask questions grounded directly in your uploaded learning resources with AI-cited sources.
         </p>
       </div>
 
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex justify-between items-center">
+        <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-400 flex justify-between items-center shadow-xs">
           <span>{error}</span>
           <button
             onClick={() => setError("")}
-            className="text-xs font-bold text-red-800 hover:underline cursor-pointer"
+            className="text-xs font-bold text-red-800 dark:text-red-300 hover:underline cursor-pointer"
           >
             Dismiss
           </button>
@@ -206,18 +206,18 @@ function DocumentChatPage() {
         {/* Left Column: Sessions List & Creator */}
         <div className="lg:col-span-1 space-y-4">
           {/* Create New Session Box */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-            <h2 className="text-sm font-bold text-slate-900">Start New Chat</h2>
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs space-y-3">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Start New Chat</h2>
             <form onSubmit={handleCreateSession} className="space-y-3">
               <div>
-                <label htmlFor="resource-select" className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="resource-select" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Learning Resource
                 </label>
                 <select
                   id="resource-select"
                   value={selectedResourceId}
                   onChange={(e) => setSelectedResourceId(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 >
                   <option value="">All Learning Materials</option>
                   {resources.map((r) => (
@@ -229,7 +229,7 @@ function DocumentChatPage() {
               </div>
 
               <div>
-                <label htmlFor="session-title-input" className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="session-title-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Chat Topic / Title (Optional)
                 </label>
                 <input
@@ -238,14 +238,14 @@ function DocumentChatPage() {
                   placeholder="e.g., Algorithms Chapter 1"
                   value={sessionTitle}
                   onChange={(e) => setSessionTitle(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={creatingSession}
-                className="w-full rounded-md bg-slate-900 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
+                className="w-full rounded-lg bg-blue-600 dark:bg-blue-500 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 cursor-pointer shadow-xs transition-colors"
               >
                 {creatingSession ? "Creating..." : "+ Create Session"}
               </button>
@@ -253,27 +253,27 @@ function DocumentChatPage() {
           </div>
 
           {/* Sessions List */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
-            <h2 className="text-sm font-bold text-slate-900">Recent Sessions</h2>
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs space-y-3">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Recent Sessions</h2>
             {loadingSessions ? (
-              <p className="text-xs text-slate-500">Loading chats...</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Loading chats...</p>
             ) : sessions.length === 0 ? (
-              <p className="text-xs text-slate-500">No chat sessions yet. Create one above!</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">No chat sessions yet. Create one above!</p>
             ) : (
               <div className="space-y-1.5 max-h-[380px] overflow-y-auto">
                 {sessions.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => handleSelectSession(s.id)}
-                    className={`w-full text-left rounded-lg p-2.5 transition-all text-xs cursor-pointer ${
+                    className={`w-full text-left rounded-xl p-2.5 transition-all text-xs cursor-pointer ${
                       activeSession?.id === s.id
-                        ? "bg-slate-900 text-white font-semibold"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                        ? "bg-blue-600 text-white font-semibold shadow-xs"
+                        : "bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
                     <p className="truncate font-medium">{s.title}</p>
                     {s.resource_title ? (
-                      <p className={`text-[10px] truncate mt-0.5 ${activeSession?.id === s.id ? "text-slate-300" : "text-slate-500"}`}>
+                      <p className={`text-[10px] truncate mt-0.5 ${activeSession?.id === s.id ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>
                         Doc: {s.resource_title}
                       </p>
                     ) : null}
@@ -285,48 +285,48 @@ function DocumentChatPage() {
         </div>
 
         {/* Right Column: Chat Window */}
-        <div className="lg:col-span-3 rounded-xl border border-slate-200 bg-white shadow-xs flex flex-col h-[650px]">
+        <div className="lg:col-span-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col h-[650px] overflow-hidden">
           {/* Chat Window Header */}
-          <div className="border-b border-slate-100 p-4 flex items-center justify-between">
+          <div className="border-b border-slate-100 dark:border-slate-800 p-4 flex items-center justify-between bg-slate-50/50 dark:bg-slate-850/50">
             <div>
-              <h2 className="font-bold text-slate-900">
+              <h2 className="font-bold text-slate-900 dark:text-white">
                 {activeSession ? activeSession.title : "Select or create a chat session"}
               </h2>
               {activeSession?.resource_title ? (
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/60 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:text-blue-300">
                     Focused Document: {activeSession.resource_title}
                   </span>
                   <button
                     type="button"
                     onClick={handleIndexCurrentResource}
                     disabled={indexingDoc}
-                    className="text-[10px] text-blue-600 hover:underline cursor-pointer"
+                    className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                   >
                     {indexingDoc ? "Re-indexing..." : "Re-index Doc"}
                   </button>
                 </div>
               ) : (
-                <span className="text-xs text-slate-500">Grounded across all user documents</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Grounded across all user documents</span>
               )}
             </div>
             {activeSession ? (
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 dark:text-slate-500">
                 {activeSession.messages?.length || 0} messages
               </span>
             ) : null}
           </div>
 
           {/* Messages Thread */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50">
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50 dark:bg-slate-950/40">
             {!activeSession ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400 text-sm">
+              <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 text-sm">
                 <p>Select an existing session on the left or create a new one to begin learning.</p>
               </div>
             ) : activeSession.messages?.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-500 text-sm space-y-4">
-                <p className="font-medium text-slate-700">No messages in this session yet.</p>
-                <p className="text-xs text-slate-500 max-w-md text-center">
+              <div className="h-full flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 text-sm space-y-4">
+                <p className="font-medium text-slate-700 dark:text-slate-200">No messages in this session yet.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md text-center">
                   Try asking a specific question about your study materials, or click one of the quick suggestions below:
                 </p>
                 <div className="flex flex-col gap-2 w-full max-w-md">
@@ -334,7 +334,7 @@ function DocumentChatPage() {
                     <button
                       key={idx}
                       onClick={() => handleSendMessage(null, prompt)}
-                      className="text-left rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer shadow-2xs"
+                      className="text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer shadow-2xs"
                     >
                       {prompt}
                     </button>
@@ -350,16 +350,16 @@ function DocumentChatPage() {
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-xs ${
                       msg.sender === "USER"
-                        ? "bg-slate-900 text-white rounded-tr-xs"
-                        : "bg-white text-slate-900 border border-slate-200 rounded-tl-xs"
+                        ? "bg-blue-600 text-white rounded-tr-xs"
+                        : "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-tl-xs"
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.message}</p>
 
                     {/* Source Citations Badges (AI messages only) */}
                     {msg.sender === "AI" && msg.sources?.length > 0 ? (
-                      <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
                           Grounded Sources:
                         </span>
                         <div className="flex flex-wrap gap-1.5">
@@ -372,14 +372,14 @@ function DocumentChatPage() {
                                   onClick={() =>
                                     setExpandedSource(isSelected ? null : `${msg.id}-${sIdx}`)
                                   }
-                                  className="inline-flex items-center gap-1 rounded bg-blue-50 hover:bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-800 transition-colors cursor-pointer"
+                                  className="inline-flex items-center gap-1 rounded-md bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-900 px-2 py-0.5 text-[11px] font-medium text-blue-800 dark:text-blue-300 transition-colors cursor-pointer"
                                 >
                                   📄 {src.resource_title} (Chunk #{src.chunk_index})
                                 </button>
                                 {isSelected ? (
-                                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 max-w-sm shadow-xs space-y-1">
-                                    <p className="font-semibold text-slate-900">Excerpt snippet:</p>
-                                    <p className="italic text-slate-600">"{src.snippet}..."</p>
+                                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-700 dark:text-slate-300 max-w-sm shadow-xs space-y-1">
+                                    <p className="font-semibold text-slate-900 dark:text-white">Excerpt snippet:</p>
+                                    <p className="italic text-slate-600 dark:text-slate-400">"{src.snippet}..."</p>
                                   </div>
                                 ) : null}
                               </div>
@@ -389,7 +389,7 @@ function DocumentChatPage() {
                       </div>
                     ) : null}
                   </div>
-                  <span className="text-[10px] text-slate-400 mt-1 px-1">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 px-1">
                     {msg.sender === "USER" ? "You" : "Learning AI"} •{" "}
                     {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
@@ -399,7 +399,7 @@ function DocumentChatPage() {
 
             {sendingMessage ? (
               <div className="flex items-start">
-                <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-xs px-4 py-3 text-xs text-slate-600 shadow-xs flex items-center gap-2">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl rounded-tl-xs px-4 py-3 text-xs text-slate-600 dark:text-slate-400 shadow-xs flex items-center gap-2">
                   <span className="inline-block w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
                   Learning AI is searching resources and grounding answer...
                 </div>
@@ -410,19 +410,19 @@ function DocumentChatPage() {
           </div>
 
           {/* Chat Input Bar */}
-          <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-200 bg-white flex gap-2">
+          <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-2">
             <input
               type="text"
               placeholder={activeSession ? "Ask a question about your study documents..." : "Select or create a chat session first..."}
               value={messageInput}
               disabled={!activeSession || sendingMessage}
               onChange={(e) => setMessageInput(e.target.value)}
-              className="flex-1 rounded-lg border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none disabled:bg-slate-50"
+              className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none disabled:bg-slate-50 dark:disabled:bg-slate-850"
             />
             <button
               type="submit"
               disabled={!activeSession || sendingMessage || !messageInput.trim()}
-              className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
+              className="rounded-xl bg-blue-600 dark:bg-blue-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 cursor-pointer shadow-xs transition-colors"
             >
               Send
             </button>

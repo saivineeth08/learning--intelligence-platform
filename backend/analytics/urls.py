@@ -1,6 +1,7 @@
 from django.urls import path
 
 from analytics.views import (
+    CalendarEventsView,
     DashboardAnalyticsView,
     GoalAnalyticsView,
     StudyTimeAnalyticsView,
@@ -12,4 +13,5 @@ urlpatterns = [
     path("study-time/", StudyTimeAnalyticsView.as_view(), name="analytics-study-time"),
     path("goals/", GoalAnalyticsView.as_view(), name="analytics-goals"),
     path("tasks/", TaskAnalyticsView.as_view(), name="analytics-tasks"),
+    path("calendar/", CalendarEventsView.as_view(), name="analytics-calendar"),
 ]

@@ -33,9 +33,10 @@ def retrieve_relevant_chunks(
     resource: Optional[Resource] = None,
     top_k: int = 4,
     similarity_threshold: float = -1.0,
+    embedding_provider: Optional[Any] = None,
 ) -> List[Dict[str, Any]]:
     """Retrieve top-k most relevant DocumentChunks for a given user query using vector similarity."""
-    if not query.strip():
+    if not query or not query.strip():
         return []
 
     # Ownership isolation: strictly query chunks belonging to this user
@@ -47,16 +48,19 @@ def retrieve_relevant_chunks(
     if not candidate_chunks:
         return []
 
-    embedding_provider = get_embedding_provider()
-    query_vector = embedding_provider.generate_embedding(query)
+    provider = embedding_provider or get_embedding_provider()
+    query_vector = provider.generate_embedding(query.strip())
+    if not query_vector:
+        return []
 
     scored_chunks = []
     chunks_to_update = []
 
     for chunk in candidate_chunks:
         chunk_vector = chunk.embedding
-        if not chunk_vector:
-            chunk_vector = embedding_provider.generate_embedding(chunk.content)
+        # If chunk embedding is missing or dimension mismatch with query vector, recalculate
+        if not chunk_vector or not isinstance(chunk_vector, list) or len(chunk_vector) != len(query_vector):
+            chunk_vector = provider.generate_embedding(chunk.content)
             chunk.embedding = chunk_vector
             chunks_to_update.append(chunk)
 
@@ -86,6 +90,7 @@ def generate_grounded_response(
     resource: Optional[Resource] = None,
     top_k: int = 4,
     llm_provider=None,
+    embedding_provider=None,
 ) -> Dict[str, Any]:
     """Execute RAG retrieval and generate grounded response with source citations."""
     relevant_chunks = retrieve_relevant_chunks(
@@ -93,6 +98,7 @@ def generate_grounded_response(
         query=query,
         resource=resource,
         top_k=top_k,
+        embedding_provider=embedding_provider,
     )
 
     if not relevant_chunks:

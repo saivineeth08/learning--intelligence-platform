@@ -9,6 +9,7 @@ from django.db import transaction
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from ai.models import DocumentChunk
+from ai.providers import get_embedding_provider
 from resources.models import Resource, ResourceType
 
 logger = logging.getLogger(__name__)
@@ -190,14 +191,20 @@ def index_resource(
     request_user: Optional[Any] = None,
     chunk_size: int = 500,
     overlap: int = 100,
+    embedding_provider: Optional[Any] = None,
 ) -> Dict[str, Any]:
-    """Extract, clean, chunk, and idempotently persist DocumentChunk records for a Resource."""
+    """Extract, clean, chunk, generate embeddings, and atomically persist DocumentChunk records for a Resource."""
     if request_user is not None and resource.user_id != request_user.id:
         raise PermissionDenied("You do not have permission to index this resource.")
 
     raw_text = extract_text(resource)
     cleaned = clean_text(raw_text)
     chunks = chunk_text(cleaned, chunk_size=chunk_size, overlap=overlap)
+
+    embeddings = []
+    if chunks:
+        provider = embedding_provider or get_embedding_provider()
+        embeddings = provider.generate_embeddings(chunks)
 
     with transaction.atomic():
         # Clean up any pre-existing chunks for this resource
@@ -209,6 +216,7 @@ def index_resource(
                 user=resource.user,
                 chunk_index=i,
                 content=content,
+                embedding=embeddings[i] if i < len(embeddings) else None,
             )
             for i, content in enumerate(chunks)
         ]
@@ -217,7 +225,7 @@ def index_resource(
             DocumentChunk.objects.bulk_create(chunk_objects)
 
     logger.info(
-        "Resource %s indexed successfully: %d chunks created.",
+        "Resource %s indexed successfully: %d chunks created with embeddings.",
         resource.id,
         len(chunk_objects),
     )

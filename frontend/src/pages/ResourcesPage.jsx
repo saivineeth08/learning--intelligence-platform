@@ -5,8 +5,10 @@ import { getGoals } from "../services/goals";
 import {
   createResource,
   deleteResource,
+  downloadResource,
   getResources,
   updateResource,
+  viewResource,
 } from "../services/resources";
 import { getTasks } from "../services/tasks";
 
@@ -17,7 +19,10 @@ function ResourcesPage() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [indexingState, setIndexingState] = useState({});
+  const [viewingState, setViewingState] = useState({});
+  const [downloadingState, setDownloadingState] = useState({});
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -39,13 +44,43 @@ function ResourcesPage() {
   async function handleIndexResource(resourceId) {
     setIndexingState((prev) => ({ ...prev, [resourceId]: true }));
     setError("");
+    setSuccessMessage("");
     try {
-      await indexResource(resourceId);
+      const res = await indexResource(resourceId);
+      setSuccessMessage(`Resource indexed for AI (${res.total_chunks || 0} chunks extracted).`);
       await loadData();
     } catch (err) {
-      setError("Failed to index resource for AI. Check that it contains readable text.");
+      setError("Failed to index resource for AI. Ensure file contains readable text.");
     } finally {
       setIndexingState((prev) => ({ ...prev, [resourceId]: false }));
+    }
+  }
+
+  async function handleView(resourceId) {
+    setViewingState((prev) => ({ ...prev, [resourceId]: true }));
+    setError("");
+    try {
+      await viewResource(resourceId);
+    } catch (err) {
+      setError(
+        err.response?.data?.detail || "Could not open file for viewing."
+      );
+    } finally {
+      setViewingState((prev) => ({ ...prev, [resourceId]: false }));
+    }
+  }
+
+  async function handleDownload(resourceId, filename) {
+    setDownloadingState((prev) => ({ ...prev, [resourceId]: true }));
+    setError("");
+    try {
+      await downloadResource(resourceId, filename);
+    } catch (err) {
+      setError(
+        err.response?.data?.detail || "Failed to download file."
+      );
+    } finally {
+      setDownloadingState((prev) => ({ ...prev, [resourceId]: false }));
     }
   }
 
@@ -187,38 +222,57 @@ function ResourcesPage() {
     <section className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Learning Resources</h1>
-          <p className="mt-1 text-slate-600">
-            Upload course materials, documentation files, and helpful external links.
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Learning Resources
+          </h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Upload study documents (PDF, DOCX, TXT), notes, and reference links for AI knowledge retrieval.
           </p>
         </div>
         <button
           onClick={openCreate}
-          className="self-start rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="self-start inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 cursor-pointer transition-colors"
         >
-          + Add Resource
+          <span>+</span>
+          <span>Add Resource</span>
         </button>
       </div>
 
       {error ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span>⚠️</span>
+            <span>{error}</span>
+          </div>
+          <button onClick={() => setError("")} className="text-red-400 hover:text-red-600">✕</button>
+        </div>
+      ) : null}
+
+      {successMessage ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800/80 dark:bg-emerald-950/40 dark:text-emerald-300 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span>✓</span>
+            <span>{successMessage}</span>
+          </div>
+          <button onClick={() => setSuccessMessage("")} className="text-emerald-400 hover:text-emerald-600">✕</button>
+        </div>
       ) : null}
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-wrap gap-3 items-center bg-white p-4 rounded-lg border border-slate-200">
-        <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[200px] flex gap-2">
-          <input
-            type="search"
-            placeholder="Search by title or description..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-          />
+      <div className="flex flex-wrap gap-3 items-center rounded-xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+        <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[220px] flex gap-2">
+          <div className="relative flex-1">
+            <input
+              type="search"
+              placeholder="Search by title or description..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-3.5 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
+            />
+          </div>
           <button
             type="submit"
-            className="rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200"
+            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors"
           >
             Search
           </button>
@@ -228,17 +282,17 @@ function ResourcesPage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           >
             <option value="">All Types</option>
-            <option value="FILE">Files</option>
-            <option value="LINK">Links</option>
+            <option value="FILE">Files Only</option>
+            <option value="LINK">Links Only</option>
           </select>
 
           <select
             value={goalFilter}
             onChange={(e) => setGoalFilter(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 max-w-[180px] truncate"
           >
             <option value="">All Goals</option>
             {goals.map((g) => (
@@ -252,15 +306,25 @@ function ResourcesPage() {
 
       {/* Resource Grid / List */}
       {loading ? (
-        <p className="text-slate-600">Loading resources...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-44 rounded-2xl border border-slate-200 bg-white p-5 animate-pulse dark:border-slate-800 dark:bg-slate-900" />
+          ))}
+        </div>
       ) : resources.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
-          <p className="text-slate-600 font-medium">No learning resources found.</p>
+        <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 mb-3 text-2xl">
+            📚
+          </div>
+          <p className="text-slate-900 dark:text-white font-semibold text-lg">No learning resources yet</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            Upload course PDFs, lecture notes, or docs to start chatting with your materials using AI.
+          </p>
           <button
             onClick={openCreate}
-            className="mt-4 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+            className="mt-5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500"
           >
-            Add Your First Resource
+            Add First Resource
           </button>
         </div>
       ) : (
@@ -268,28 +332,39 @@ function ResourcesPage() {
           {resources.map((resource) => (
             <div
               key={resource.id}
-              className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-5 hover:border-slate-300 shadow-xs space-y-4"
+              className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 shadow-2xs transition-all space-y-4"
             >
               <div>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-xl">
                       {resource.resource_type === "FILE" ? "📄" : "🔗"}
                     </span>
-                    <h3 className="font-semibold text-slate-900">{resource.title}</h3>
+                    <div>
+                      <h3 className="font-bold text-slate-900 dark:text-white leading-tight">
+                        {resource.title}
+                      </h3>
+                      {resource.file_name && (
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[220px]">
+                          {resource.file_name}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+                      className={`text-[11px] px-2 py-0.5 rounded-md font-semibold border ${
                         resource.resource_type === "FILE"
-                          ? "bg-purple-50 text-purple-700 border-purple-200"
-                          : "bg-cyan-50 text-cyan-700 border-cyan-200"
+                          ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800"
+                          : "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800"
                       }`}
                     >
                       {resource.resource_type}
                     </span>
+
                     {resource.is_indexed ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
                         ✨ AI Ready ({resource.chunk_count})
                       </span>
                     ) : (
@@ -297,87 +372,100 @@ function ResourcesPage() {
                         type="button"
                         onClick={() => handleIndexResource(resource.id)}
                         disabled={indexingState[resource.id]}
-                        className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 cursor-pointer disabled:opacity-50"
+                        className="text-[10px] px-2.5 py-0.5 rounded-md font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/70 dark:text-indigo-300 dark:border-indigo-800 cursor-pointer disabled:opacity-50"
                       >
-                        {indexingState[resource.id] ? "⚙️ Indexing..." : "⚡ Index"}
+                        {indexingState[resource.id] ? "⚙️ Indexing..." : "⚡ Index AI"}
                       </button>
                     )}
                   </div>
                 </div>
 
                 {resource.description ? (
-                  <p className="mt-2 text-sm text-slate-600">{resource.description}</p>
+                  <p className="mt-3 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                    {resource.description}
+                  </p>
                 ) : null}
 
                 <div className="flex flex-wrap gap-2 mt-3 items-center text-xs">
                   {resource.goal_title ? (
-                    <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                    <span className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-2 py-0.5 rounded-md font-medium">
                       🎯 {resource.goal_title}
                     </span>
                   ) : null}
                   {resource.task_title ? (
-                    <span className="bg-slate-50 text-slate-600 border border-slate-200 px-2 py-0.5 rounded">
+                    <span className="bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800/60 dark:border-slate-700 dark:text-slate-400 px-2 py-0.5 rounded-md font-medium">
                       ✓ {resource.task_title}
                     </span>
                   ) : null}
                 </div>
+              </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                  {resource.resource_type === "FILE" && resource.file_url ? (
-                    <a
-                      href={resource.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline"
-                    >
-                      <span>Download / View</span>
-                      <span className="text-slate-400 font-normal">({resource.file_name})</span>
-                    </a>
+              {/* Action Bar */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  {resource.resource_type === "FILE" ? (
+                    <>
+                      {/* Explicit Inline View */}
+                      <button
+                        type="button"
+                        onClick={() => handleView(resource.id)}
+                        disabled={viewingState[resource.id]}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                      >
+                        <span>👁️</span>
+                        <span>{viewingState[resource.id] ? "Opening..." : "View"}</span>
+                      </button>
+
+                      {/* Explicit Download */}
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(resource.id, resource.file_name)}
+                        disabled={downloadingState[resource.id]}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                      >
+                        <span>⬇️</span>
+                        <span>{downloadingState[resource.id] ? "Downloading..." : "Download"}</span>
+                      </button>
+                    </>
                   ) : null}
+
                   {resource.resource_type === "LINK" && resource.url ? (
                     <a
                       href={resource.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-700 hover:underline truncate max-w-[200px]"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 dark:border-cyan-900 dark:bg-cyan-950/60 dark:text-cyan-300 transition-colors"
                     >
+                      <span>🔗</span>
                       <span>Open Link ↗</span>
-                      <span className="text-slate-400 font-normal truncate">({resource.url})</span>
                     </a>
                   ) : null}
-                </div>
-              </div>
 
-              {/* AI Actions Row */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
                   <Link
                     to={`/ai/chat?resource=${resource.id}`}
-                    className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+                    className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-900/60 dark:bg-indigo-950/60 dark:text-indigo-300 transition-colors"
                   >
-                    💬 Ask AI
-                  </Link>
-                  <Link
-                    to={`/ai/quizzes?resource=${resource.id}`}
-                    className="inline-flex items-center gap-1 rounded-md bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-800"
-                  >
-                    ✨ Quiz
+                    <span>💬</span>
+                    <span>Chat AI</span>
                   </Link>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-slate-500">
+                <div className="flex items-center gap-1">
                   <button
+                    type="button"
                     onClick={() => openEdit(resource)}
-                    className="font-medium text-slate-700 hover:underline"
+                    className="p-1.5 text-xs font-medium text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300 rounded-md"
+                    title="Edit Resource"
                   >
-                    Edit
+                    ✏️
                   </button>
-                  <span>•</span>
                   <button
+                    type="button"
                     onClick={() => handleDelete(resource.id)}
-                    className="font-medium text-red-600 hover:underline"
+                    className="p-1.5 text-xs font-medium text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400 rounded-md"
+                    title="Delete Resource"
                   >
-                    Delete
+                    🗑️
                   </button>
                 </div>
               </div>
@@ -386,149 +474,171 @@ function ResourcesPage() {
         </div>
       )}
 
-      {/* Create / Edit Modal */}
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold">
-              {editingResource ? "Edit Resource" : "Add Learning Resource"}
-            </h2>
+      {/* Resource Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                {editingResource ? "Edit Resource" : "Add Learning Resource"}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Resource Type</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="radio"
-                      name="resource_type"
-                      value="FILE"
-                      checked={form.resource_type === "FILE"}
-                      onChange={handleFormChange}
-                    />
-                    <span>📄 Upload File</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="radio"
-                      name="resource_type"
-                      value="LINK"
-                      checked={form.resource_type === "LINK"}
-                      onChange={handleFormChange}
-                    />
-                    <span>🔗 External Link</span>
-                  </label>
-                </div>
-              </div>
-
-              <label className="block text-sm font-medium">
-                Title *
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                  Title
+                </label>
                 <input
                   name="title"
                   value={form.title}
                   onChange={handleFormChange}
+                  placeholder="e.g. Distributed Systems Chapter 4"
                   required
-                  placeholder="e.g. Django ORM Cheat Sheet"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
-              </label>
+              </div>
 
-              <label className="block text-sm font-medium">
-                Description
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleFormChange}
-                  rows={2}
-                  placeholder="Summary or purpose of this material"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                />
-              </label>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                  Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, resource_type: "FILE" }))}
+                    className={`py-2 px-3 rounded-lg text-xs font-semibold border ${
+                      form.resource_type === "FILE"
+                        ? "border-indigo-600 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                        : "border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-400"
+                    }`}
+                  >
+                    📄 Upload File (PDF/DOCX)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, resource_type: "LINK" }))}
+                    className={`py-2 px-3 rounded-lg text-xs font-semibold border ${
+                      form.resource_type === "LINK"
+                        ? "border-indigo-600 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                        : "border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-400"
+                    }`}
+                  >
+                    🔗 External URL Link
+                  </button>
+                </div>
+              </div>
 
               {form.resource_type === "FILE" ? (
-                <label className="block text-sm font-medium">
-                  File {editingResource ? "(Leave blank to keep existing)" : "*"}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                    File Upload
+                  </label>
                   <input
                     type="file"
-                    accept=".pdf,.txt,.docx,.doc,.png,.jpg,.jpeg,.md"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 file:mr-3 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-950 dark:file:text-indigo-300"
                     required={!editingResource}
-                    onChange={(e) => setSelectedFile(e.target.files[0])}
-                    className="mt-1 w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                   />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Allowed: PDF, TXT, DOCX, DOC, PNG, JPG, MD (Max 10MB)
-                  </p>
-                </label>
+                  <p className="mt-1 text-[11px] text-slate-400">Supported: PDF, DOCX, TXT, MD, PNG, JPG (max 25MB)</p>
+                </div>
               ) : (
-                <label className="block text-sm font-medium">
-                  URL *
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                    URL Link
+                  </label>
                   <input
                     type="url"
                     name="url"
                     value={form.url}
                     onChange={handleFormChange}
+                    placeholder="https://example.com/article"
                     required
-                    placeholder="https://..."
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
-                </label>
+                </div>
               )}
 
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleFormChange}
+                  rows={2}
+                  placeholder="Optional summary or notes regarding this resource"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm font-medium">
-                  Goal (Optional)
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                    Link to Goal
+                  </label>
                   <select
                     name="goal"
                     value={form.goal}
                     onChange={handleFormChange}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   >
-                    <option value="">No goal attached</option>
+                    <option value="">None (Independent)</option>
                     {goals.map((g) => (
                       <option key={g.id} value={g.id}>
                         {g.title}
                       </option>
                     ))}
                   </select>
-                </label>
+                </div>
 
-                <label className="block text-sm font-medium">
-                  Task (Optional)
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                    Link to Task
+                  </label>
                   <select
                     name="task"
                     value={form.task}
                     onChange={handleFormChange}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   >
-                    <option value="">No task attached</option>
+                    <option value="">None</option>
                     {filteredTasksForModal.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.title}
                       </option>
                     ))}
                   </select>
-                </label>
+                </div>
               </div>
 
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="mt-6 flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
+                  className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-500 disabled:opacity-60"
                 >
-                  {submitting ? "Saving..." : editingResource ? "Update Resource" : "Save Resource"}
+                  {submitting ? "Saving..." : editingResource ? "Update Resource" : "Create Resource"}
                 </button>
               </div>
             </form>
           </div>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }

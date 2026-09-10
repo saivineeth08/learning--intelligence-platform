@@ -58,3 +58,18 @@ class TaskSerializer(serializers.ModelSerializer):
                     "Selected goal does not belong to the authenticated user."
                 )
         return value
+
+    def validate(self, attrs):
+        goal = attrs.get("goal") or (self.instance.goal if self.instance else None)
+        due_date = attrs.get("due_date", self.instance.due_date if self.instance else None)
+
+        if goal and due_date and goal.target_date:
+            if due_date > goal.target_date:
+                raise serializers.ValidationError(
+                    {
+                        "due_date": (
+                            f"Task due date ({due_date}) cannot be after the goal target date ({goal.target_date})."
+                        )
+                    }
+                )
+        return attrs

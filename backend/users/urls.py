@@ -2,18 +2,29 @@ from django.urls import path
 
 from users.views import (
     ChangePasswordView,
+    GoogleLoginView,
     LoginView,
     LogoutView,
     ProfileView,
     RegisterView,
+    ResendVerificationEmailView,
     TokenRefreshView,
+    VerifyEmailView,
 )
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="auth-register"),
     path("login/", LoginView.as_view(), name="auth-login"),
+    path("google/", GoogleLoginView.as_view(), name="auth-google"),
+    path("verify-email/", VerifyEmailView.as_view(), name="auth-verify-email"),
+    path(
+        "resend-verification/",
+        ResendVerificationEmailView.as_view(),
+        name="auth-resend-verification",
+    ),
     path("refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
     path("logout/", LogoutView.as_view(), name="auth-logout"),
     path("profile/", ProfileView.as_view(), name="auth-profile"),
     path("change-password/", ChangePasswordView.as_view(), name="auth-change-password"),
 ]
+
